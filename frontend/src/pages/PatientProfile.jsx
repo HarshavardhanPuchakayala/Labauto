@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import axiosInstance from "../api/axiosInstance";
-import InsuranceForm from "../components/insurance/InsuranceForm";
-import InsuranceList from "../components/insurance/InsuranceList";
+import InsuranceForm from "../components/Insurance/InsuranceForm";
+import InsuranceList from "../components/Insurance/InsuranceList";
 
 function PatientProfile() {
   const { id } = useParams();
