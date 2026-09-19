@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 
 import axiosInstance from "../api/axiosInstance";
-import PatientForm from "../components/patients/PatientForm";
+import PatientForm from "../components/patients/patientForm";
 import PatientTable from "../components/patients/PatientTable";
 
 function TechnicianDashboard() {
