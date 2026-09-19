@@ -1,4 +1,20 @@
 import mongoose from "mongoose";
+
+const logoSchema = new mongoose.Schema(
+  {
+    data: {
+      type: Buffer,
+      required: true,
+    },
+    contentType: {
+      type: String,
+      required: true,
+      enum: ["image/png", "image/jpeg"],
+    },
+  },
+  { _id: false }
+);
+
 const labSchema = new mongoose.Schema(
   {
     labId: {
@@ -41,6 +57,24 @@ const labSchema = new mongoose.Schema(
     subscriptionExpiresAt: {
       type: Date,
       required: true,
+    },
+
+    tagline: {
+      type: String,
+      trim: true,
+      maxlength: 120,
+    },
+
+    // Bytes are hidden from every normal query. Only the PDF path opts in.
+    logo: {
+      type: logoSchema,
+      select: false,
+    },
+
+    // Lightweight flag so the UI knows whether a logo exists without loading the bytes
+    hasLogo: {
+      type: Boolean,
+      default: false,
     },
   },
   {

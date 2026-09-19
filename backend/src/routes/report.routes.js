@@ -7,7 +7,8 @@ import {
   enterResultsHandler,
   completeHandler,
   deliverReportHandler,
-  getReportByIdHandler
+  getReportByIdHandler,
+  generateReportPdfHandler
 } from "../controllers/report.controller.js";
 
 import { verifyToken } from "../middlewares/auth.middleware.js";
@@ -18,6 +19,7 @@ router.post("/", verifyToken, createReportHandler);
 
 router.get("/", verifyToken, getReportsHandler);
 router.get("/:id", verifyToken, getReportByIdHandler);
+router.get("/:id/pdf", verifyToken, generateReportPdfHandler);
 router.patch(
   "/:id/collect-sample",
   verifyToken,

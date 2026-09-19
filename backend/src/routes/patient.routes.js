@@ -2,6 +2,7 @@ import express from "express";
 import {
   createPatientHandler,
   getPatientsHandler,
+  getPatientByIdHandler
 } from "../controllers/patient.controller.js";
 import { verifyToken } from "../middlewares/auth.middleware.js";
 

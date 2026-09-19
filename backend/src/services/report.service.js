@@ -1,12 +1,10 @@
+import mongoose from "mongoose";
+
 import AppError from "../utils/AppError.js";
 
-import {
-  findPatientById,
-} from "../repositories/patient.repository.js";
-
-import {
-  findTemplateById,
-} from "../repositories/testTemplate.repository.js";
+import { findPatientById } from "../repositories/patient.repository.js";
+import { findTemplateById } from "../repositories/testTemplate.repository.js";
+import { findLabById } from "../repositories/lab.repository.js";
 
 import {
   createReport,
@@ -15,11 +13,7 @@ import {
   updateReport,
 } from "../repositories/report.repository.js";
 
-export const createReportForLab = async (
-  data,
-  labId,
-  technicianId
-) => {
+export const createReportForLab = async (data, labId, technicianId) => {
   const patient = await findPatientById(data.patient);
 
   if (!patient) {
@@ -27,10 +21,7 @@ export const createReportForLab = async (
   }
 
   if (patient.labId.toString() !== labId.toString()) {
-    throw new AppError(
-      "Patient does not belong to your lab",
-      403
-    );
+    throw new AppError("Patient does not belong to your lab", 403);
   }
 
   const template = await findTemplateById(data.testTemplate);
@@ -40,10 +31,7 @@ export const createReportForLab = async (
   }
 
   if (template.labId.toString() !== labId.toString()) {
-    throw new AppError(
-      "Test template does not belong to your lab",
-      403
-    );
+    throw new AppError("Test template does not belong to your lab", 403);
   }
 
   const reportData = {
@@ -58,6 +46,7 @@ export const createReportForLab = async (
 export const getReportsForLab = async (labId) => {
   return await findReportsByLab(labId);
 };
+
 export const getReportById = async (reportId, labId) => {
   const report = await findReportById(reportId);
 
@@ -66,14 +55,12 @@ export const getReportById = async (reportId, labId) => {
   }
 
   if (report.labId.toString() !== labId.toString()) {
-    throw new AppError(
-      "Report does not belong to your lab",
-      403
-    );
+    throw new AppError("Report does not belong to your lab", 403);
   }
 
   return report;
 };
+
 export const collectSample = async (reportId, labId) => {
   const report = await findReportById(reportId);
 
@@ -82,17 +69,11 @@ export const collectSample = async (reportId, labId) => {
   }
 
   if (report.labId.toString() !== labId.toString()) {
-    throw new AppError(
-      "Report does not belong to your lab",
-      403
-    );
+    throw new AppError("Report does not belong to your lab", 403);
   }
 
   if (report.status !== "pending") {
-    throw new AppError(
-      "Report is not in pending state",
-      400
-    );
+    throw new AppError("Report is not in pending state", 400);
   }
 
   return await updateReport(reportId, {
@@ -101,11 +82,7 @@ export const collectSample = async (reportId, labId) => {
   });
 };
 
-export const enterResults = async (
-  reportId,
-  labId,
-  resultsPayload
-) => {
+export const enterResults = async (reportId, labId, resultsPayload) => {
   const report = await findReportById(reportId);
 
   if (!report) {
@@ -113,17 +90,11 @@ export const enterResults = async (
   }
 
   if (report.labId.toString() !== labId.toString()) {
-    throw new AppError(
-      "Report does not belong to your lab",
-      403
-    );
+    throw new AppError("Report does not belong to your lab", 403);
   }
 
   if (report.status !== "sample_collected") {
-    throw new AppError(
-      "Sample must be collected before entering results",
-      400
-    );
+    throw new AppError("Sample must be collected before entering results", 400);
   }
 
   const template = await findTemplateById(report.testTemplate);
@@ -133,35 +104,18 @@ export const enterResults = async (
   }
 
   for (const item of resultsPayload) {
-    const field = template.fields.find(
-      (field) => field.key === item.key
-    );
+    const field = template.fields.find((field) => field.key === item.key);
 
     if (!field) {
-      throw new AppError(
-        `Invalid result key: ${item.key}`,
-        400
-      );
+      throw new AppError(`Invalid result key: ${item.key}`, 400);
     }
 
-    if (
-      field.type === "number" &&
-      typeof item.value !== "number"
-    ) {
-      throw new AppError(
-        `${item.key} must be a number`,
-        400
-      );
+    if (field.type === "number" && typeof item.value !== "number") {
+      throw new AppError(`${item.key} must be a number`, 400);
     }
 
-    if (
-      field.type === "text" &&
-      typeof item.value !== "string"
-    ) {
-      throw new AppError(
-        `${item.key} must be text`,
-        400
-      );
+    if (field.type === "text" && typeof item.value !== "string") {
+      throw new AppError(`${item.key} must be text`, 400);
     }
   }
 
@@ -172,10 +126,7 @@ export const enterResults = async (
   });
 };
 
-export const completeReport = async (
-  reportId,
-  labId
-) => {
+export const completeReport = async (reportId, labId) => {
   const report = await findReportById(reportId);
 
   if (!report) {
@@ -183,17 +134,11 @@ export const completeReport = async (
   }
 
   if (report.labId.toString() !== labId.toString()) {
-    throw new AppError(
-      "Report does not belong to your lab",
-      403
-    );
+    throw new AppError("Report does not belong to your lab", 403);
   }
 
   if (report.status !== "result_entered") {
-    throw new AppError(
-      "Results must be entered before completing",
-      400
-    );
+    throw new AppError("Results must be entered before completing", 400);
   }
 
   return await updateReport(reportId, {
@@ -202,11 +147,7 @@ export const completeReport = async (
   });
 };
 
-export const deliverReport = async (
-  reportId,
-  labId,
-  deliveryMethod
-) => {
+export const deliverReport = async (reportId, labId, deliveryMethod) => {
   const report = await findReportById(reportId);
 
   if (!report) {
@@ -214,28 +155,52 @@ export const deliverReport = async (
   }
 
   if (report.labId.toString() !== labId.toString()) {
-    throw new AppError(
-      "Report does not belong to your lab",
-      403
-    );
+    throw new AppError("Report does not belong to your lab", 403);
   }
 
   if (report.status !== "completed") {
-    throw new AppError(
-      "Report must be completed before delivery",
-      400
-    );
+    throw new AppError("Report must be completed before delivery", 400);
   }
 
   if (!["digital", "physical"].includes(deliveryMethod)) {
-    throw new AppError(
-      "Invalid delivery method",
-      400
-    );
+    throw new AppError("Invalid delivery method", 400);
   }
 
   return await updateReport(reportId, {
     deliveryMethod,
     deliveredAt: new Date(),
   });
+};
+
+export const getReportForPdf = async (reportId, labId) => {
+  if (!mongoose.isValidObjectId(reportId)) {
+    throw new AppError("Invalid report ID", 400);
+  }
+
+  const report = await findReportById(reportId); // populates patient, testTemplate, technician
+  if (!report) {
+    throw new AppError("Report not found", 404);
+  }
+
+  if (report.labId.toString() !== labId.toString()) {
+    throw new AppError("Report does not belong to your lab", 403);
+  }
+
+  // deliverReport doesn't change status, so "completed" covers delivered too.
+  // Revisit this if you add a "delivered" status later.
+  if (report.status !== "completed") {
+    throw new AppError("Report must be completed before generating a PDF", 400);
+  }
+
+  // Validate everything the PDF needs BEFORE any bytes are sent
+  if (!report.patient || !report.testTemplate) {
+    throw new AppError("Report is missing patient or test template data", 422);
+  }
+
+  const lab = await findLabById(labId);
+  if (!lab) {
+    throw new AppError("Lab not found", 404);
+  }
+
+  return { report, lab };
 };

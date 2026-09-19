@@ -1,7 +1,9 @@
 import {
   registerLab,
-  renewSubscription
+  renewSubscription,
 } from "../services/lab.service.js";
+
+import { uploadLabLogo } from "../services/labLogo.service.js";
 
 export const createLabHandler = async (req, res, next) => {
   try {
@@ -15,6 +17,7 @@ export const createLabHandler = async (req, res, next) => {
     next(error);
   }
 };
+
 export const renewLabHandler = async (req, res, next) => {
   try {
     const lab = await renewSubscription(
@@ -26,6 +29,17 @@ export const renewLabHandler = async (req, res, next) => {
       message: "Subscription renewed successfully",
       lab,
     });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const uploadLogoHandler = async (req, res, next) => {
+  try {
+    // labId comes from the verified token, never from the request body
+    const result = await uploadLabLogo(req.user.labId, req.file);
+
+    res.status(200).json(result);
   } catch (error) {
     next(error);
   }

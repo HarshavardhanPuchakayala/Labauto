@@ -5,8 +5,12 @@ import {
   enterResults,
   completeReport,
   deliverReport,
-  getReportById
+  getReportById,
+  getReportForPdf,
 } from "../services/report.service.js";
+
+import { buildReportPdf } from "../services/reportPdf.service.js";
+
 export const createReportHandler = async (req, res, next) => {
   try {
     const report = await createReportForLab(
@@ -28,9 +32,7 @@ export const getReportsHandler = async (req, res, next) => {
   try {
     const reports = await getReportsForLab(req.user.labId);
 
-    res.status(200).json({
-      reports,
-    });
+    res.status(200).json({ reports });
   } catch (error) {
     next(error);
   }
@@ -38,10 +40,7 @@ export const getReportsHandler = async (req, res, next) => {
 
 export const collectSampleHandler = async (req, res, next) => {
   try {
-    const report = await collectSample(
-      req.params.id,
-      req.user.labId
-    );
+    const report = await collectSample(req.params.id, req.user.labId);
 
     res.status(200).json({
       message: "Sample collected successfully",
@@ -71,10 +70,7 @@ export const enterResultsHandler = async (req, res, next) => {
 
 export const completeHandler = async (req, res, next) => {
   try {
-    const report = await completeReport(
-      req.params.id,
-      req.user.labId
-    );
+    const report = await completeReport(req.params.id, req.user.labId);
 
     res.status(200).json({
       message: "Report completed successfully",
@@ -104,13 +100,27 @@ export const deliverReportHandler = async (req, res, next) => {
 
 export const getReportByIdHandler = async (req, res, next) => {
   try {
-    const report = await getReportById(
-      req.params.id,
-      req.user.labId
-    );
+    const report = await getReportById(req.params.id, req.user.labId);
 
     res.status(200).json({ report });
   } catch (error) {
+    next(error);
+  }
+};
+
+export const generateReportPdfHandler = async (req, res, next) => {
+  try {
+    const { report, lab } = await getReportForPdf(req.params.id, req.user.labId);
+
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="report-${report._id}.pdf"`
+    );
+
+    buildReportPdf(report, lab, res);
+  } catch (error) {
+    if (res.headersSent) return res.destroy(error); // can't send JSON mid-stream
     next(error);
   }
 };
