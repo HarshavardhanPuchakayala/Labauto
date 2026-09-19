@@ -20,3 +20,11 @@ export const getPatientsHandler = async (req, res, next) => {
     next(error);
   }
 };
+export const getPatientByIdHandler = async (req, res, next) => {
+  try {
+    const patient = await getPatientById(req.params.id, req.user.labId);
+    res.status(200).json({ patient });
+  } catch (error) {
+    next(error);
+  }
+};

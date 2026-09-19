@@ -1,7 +1,6 @@
 import AppError from "../utils/AppError.js";
 import { generateSequenceId } from "../utils/generateSequenceId.js";
-import { createPatient, findPatientsByLab } from "../repositories/patient.repository.js";
-
+import { createPatient, findPatientsByLab, findPatientById } from "../repositories/patient.repository.js";
 export const registerPatient = async (data, labId) => {
   const patientId = await generateSequenceId("patientId", "PAT");
   const patientData = { ...data, labId, patientId };
@@ -18,4 +17,15 @@ export const registerPatient = async (data, labId) => {
 
 export const getPatientsForLab = async (labId) => {
   return await findPatientsByLab(labId);
+};
+
+export const getPatientById = async (patientId, labId) => {
+  const patient = await findPatientById(patientId);
+  if (!patient) {
+    throw new AppError("Patient not found", 404);
+  }
+  if (patient.labId.toString() !== labId.toString()) {
+    throw new AppError("Patient does not belong to your lab", 403);
+  }
+  return patient;
 };

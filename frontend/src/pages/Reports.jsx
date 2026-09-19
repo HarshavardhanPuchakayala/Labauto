@@ -9,6 +9,11 @@ function Reports() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [showForm, setShowForm] = useState(false);
+  const [statusFilter, setStatusFilter] = useState("all");
+
+  const filteredReports = statusFilter === "all"
+    ? reports
+    : reports.filter((r) => r.status === statusFilter);
 
   useEffect(() => {
     const fetchReports = async () => {
@@ -48,6 +53,18 @@ function Reports() {
         </button>
       </div>
 
+      <select
+        value={statusFilter}
+        onChange={(e) => setStatusFilter(e.target.value)}
+        className="mb-4 rounded-md border px-3 py-2"
+      >
+        <option value="all">All Statuses</option>
+        <option value="pending">Pending</option>
+        <option value="sample_collected">Sample Collected</option>
+        <option value="result_entered">Result Entered</option>
+        <option value="completed">Completed</option>
+      </select>
+
       {showForm && (
         <ReportForm onReportCreated={handleReportCreated} onCancel={() => setShowForm(false)} />
       )}
@@ -58,7 +75,7 @@ function Reports() {
         <div className="mb-4 rounded-md bg-red-100 px-4 py-3 text-red-700">{error}</div>
       )}
 
-      {!loading && !error && <ReportTable reports={reports} />}
+      {!loading && !error && <ReportTable reports={filteredReports} />}
     </>
   );
 }

@@ -6,6 +6,7 @@ import OwnerDashboard from "../pages/OwnerDashboard";
 import TestTemplates from "../pages/TestTemplates";
 import Reports from "../pages/Reports";
 import ReportDetail from "../pages/ReportDetail";
+import PatientProfile from "../pages/PatientProfile";
 
 import ProtectedRoute from "./ProtectedRoute";
 import Layout from "../components/layout/Layout";
@@ -56,7 +57,16 @@ function AppRoutes() {
             </ProtectedRoute>
           }
         />
+        <Route
+  path="/patients/:id"
+  element={
+    <ProtectedRoute requiredRole="technician">
+      <PatientProfile />
+    </ProtectedRoute>
+  }
+/>
       </Route>
+
 
       <Route path="/" element={<Navigate to="/login" replace />} />
       <Route path="*" element={<Navigate to="/login" replace />} />

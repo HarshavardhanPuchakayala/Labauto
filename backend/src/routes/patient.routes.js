@@ -11,4 +11,6 @@ router.post("/", verifyToken, createPatientHandler);
 
 router.get("/", verifyToken, getPatientsHandler);
 
+router.get("/:id", verifyToken, getPatientByIdHandler);
+
 export default router;

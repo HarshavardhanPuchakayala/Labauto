@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 
 import axiosInstance from "../api/axiosInstance";
-import PatientForm from "../components/patients/patientForm";
+import PatientForm from "../components/patients/PatientForm";
 import PatientTable from "../components/patients/PatientTable";
 
 function TechnicianDashboard() {
@@ -9,6 +9,7 @@ function TechnicianDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [showForm, setShowForm] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
     const fetchPatients = async () => {
@@ -32,6 +33,11 @@ function TechnicianDashboard() {
     setShowForm(false);
   };
 
+  const filteredPatients = patients.filter((p) =>
+    p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    p.phone?.includes(searchTerm)
+  );
+
   return (
     <>
       <div className="mb-6 flex items-center justify-between">
@@ -48,6 +54,14 @@ function TechnicianDashboard() {
         </button>
       </div>
 
+      <input
+        type="text"
+        placeholder="Search by name or phone..."
+        value={searchTerm}
+        onChange={(e) => setSearchTerm(e.target.value)}
+        className="mb-4 w-full max-w-md rounded-md border px-3 py-2"
+      />
+
       {showForm && (
         <PatientForm onPatientCreated={handlePatientCreated} onCancel={() => setShowForm(false)} />
       )}
@@ -58,7 +72,7 @@ function TechnicianDashboard() {
         <div className="mb-4 rounded-md bg-red-100 px-4 py-3 text-red-700">{error}</div>
       )}
 
-      {!loading && !error && <PatientTable patients={patients} />}
+      {!loading && !error && <PatientTable patients={filteredPatients} />}
     </>
   );
 }
