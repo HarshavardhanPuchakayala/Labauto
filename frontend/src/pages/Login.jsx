@@ -2,8 +2,8 @@ import { useState } from "react";
 import { useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
 
-import axiosInstance from "../api/axiosInstance";
-import { setCredentials } from "../features/auth/authSlice";
+import axiosInstance from "../api/axiosInstance.js";
+import { setCredentials } from "../features/auth/authSlice.js";
 
 function Login() {
   const dispatch = useDispatch();

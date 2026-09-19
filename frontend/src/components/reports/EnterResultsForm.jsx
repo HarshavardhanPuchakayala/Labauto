@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-import axiosInstance from "../../api/axiosInstance";
+import axiosInstance from "../../api/axiosInstance.js";
 
 function EnterResultsForm({ report, onUpdated }) {
   const [results, setResults] = useState({});

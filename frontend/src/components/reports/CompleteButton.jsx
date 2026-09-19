@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-import axiosInstance from "../../api/axiosInstance";
+import axiosInstance from "../../api/axiosInstance.js";
 
 function CompleteButton({ reportId, onUpdated }) {
   const [loading, setLoading] = useState(false);

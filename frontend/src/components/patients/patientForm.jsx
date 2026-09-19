@@ -1,5 +1,5 @@
 import { useState } from "react";
-import axiosInstance from "../../api/axiosInstance";
+import axiosInstance from "../../api/axiosInstance.js";
 
 function PatientForm({ onPatientCreated, onCancel }) {
   const [formData, setFormData] = useState({

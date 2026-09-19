@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
 
-import axiosInstance from "../api/axiosInstance";
-import LabForm from "../components/labs/LabForm";
-import LabTable from "../components/labs/LabTable";
+import axiosInstance from "../api/axiosInstance.js";
+import LabForm from "../components/labs/LabForm.jsx";
+import LabTable from "../components/labs/LabTable.jsx";
 
 function OwnerDashboard() {
   const [labs, setLabs] = useState([]);

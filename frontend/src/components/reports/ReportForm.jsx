@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-import axiosInstance from "../../api/axiosInstance";
+import axiosInstance from "../../api/axiosInstance.js";
 
 function ReportForm({ onReportCreated, onCancel }) {
   const [patients, setPatients] = useState([]);
