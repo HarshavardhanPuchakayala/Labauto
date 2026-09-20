@@ -13,8 +13,8 @@ import {
 } from "react-icons/fi";
 
 import axiosInstance from "../api/axiosInstance";
-import InsuranceForm from "../components/insurance/InsuranceForm";
-import InsuranceList from "../components/insurance/InsuranceList";
+import InsuranceForm from "../components/Insurance/InsuranceForm";
+import InsuranceList from "../components/Insurance/InsuranceList";
 import Alert from "../components/ui/Alert";
 import Badge from "../components/ui/Badge";
 import Button from "../components/ui/Button";
