@@ -1,18 +1,21 @@
+import multer from "multer";
 import {
   registerLab,
   renewSubscription,
+  getMyLab,
+  updateMyLab,
+  uploadMyLabLogo,
 } from "../services/lab.service.js";
 
-import { uploadLabLogo } from "../services/labLogo.service.js";
+export const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 2 * 1024 * 1024 }, // 2MB
+});
 
 export const createLabHandler = async (req, res, next) => {
   try {
     const lab = await registerLab(req.body);
-
-    res.status(201).json({
-      message: "Lab created successfully",
-      lab,
-    });
+    res.status(201).json({ message: "Lab created successfully", lab });
   } catch (error) {
     next(error);
   }
@@ -20,26 +23,35 @@ export const createLabHandler = async (req, res, next) => {
 
 export const renewLabHandler = async (req, res, next) => {
   try {
-    const lab = await renewSubscription(
-      req.params.id,
-      req.body.subscriptionExpiresAt
-    );
-
-    res.status(200).json({
-      message: "Subscription renewed successfully",
-      lab,
-    });
+    const lab = await renewSubscription(req.params.id, req.body.subscriptionExpiresAt);
+    res.status(200).json({ message: "Subscription renewed successfully", lab });
   } catch (error) {
     next(error);
   }
 };
 
-export const uploadLogoHandler = async (req, res, next) => {
+export const getMyLabHandler = async (req, res, next) => {
   try {
-    // labId comes from the verified token, never from the request body
-    const result = await uploadLabLogo(req.user.labId, req.file);
+    const lab = await getMyLab(req.user.labId);
+    res.status(200).json({ lab });
+  } catch (error) {
+    next(error);
+  }
+};
 
-    res.status(200).json(result);
+export const updateMyLabHandler = async (req, res, next) => {
+  try {
+    const lab = await updateMyLab(req.user.labId, req.body);
+    res.status(200).json({ message: "Lab profile updated successfully", lab });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const uploadMyLabLogoHandler = async (req, res, next) => {
+  try {
+    const lab = await uploadMyLabLogo(req.user.labId, req.file);
+    res.status(200).json({ message: "Logo uploaded successfully", hasLogo: lab.hasLogo });
   } catch (error) {
     next(error);
   }

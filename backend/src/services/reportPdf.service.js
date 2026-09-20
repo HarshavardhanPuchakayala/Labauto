@@ -15,6 +15,20 @@ export const buildReportPdf = (report, lab, outputStream) => {
   const doc = new PDFDocument({ margin: 50, size: "A4" });
   doc.pipe(outputStream);
 
+  // Logo (if the lab has one uploaded)
+  if (lab.logo?.data) {
+    try {
+      doc.image(lab.logo.data, {
+        fit: [100, 60],
+        align: "center",
+      });
+      doc.moveDown(0.5);
+    } catch (error) {
+      // Corrupt/invalid image data shouldn't crash PDF generation
+      console.error("Failed to embed lab logo:", error.message);
+    }
+  }
+
   // Letterhead
   doc.font("Helvetica-Bold").fontSize(20).text(lab.name, { align: "center" });
   doc.font("Helvetica");
@@ -38,17 +52,31 @@ export const buildReportPdf = (report, lab, outputStream) => {
   doc.text(`Date: ${formatDate(report.completedAt || report.createdAt)}`);
   doc.moveDown();
 
-  // Results table
+  // Results table — row height measured dynamically to avoid overlap on wrapped text
   const drawRow = (cells, bold = false) => {
-    if (doc.y > doc.page.height - doc.page.margins.bottom - ROW_HEIGHT) {
+    const font = bold ? "Helvetica-Bold" : "Helvetica";
+    doc.font(font).fontSize(11);
+
+    const colWidths = [
+      COLS.value - COLS.label - 10,
+      COLS.unit - COLS.value - 10,
+      doc.page.width - 50 - COLS.unit,
+    ];
+
+    const heights = cells.map((text, i) =>
+      doc.heightOfString(String(text), { width: colWidths[i] })
+    );
+    const rowHeight = Math.max(ROW_HEIGHT, ...heights);
+
+    if (doc.y > doc.page.height - doc.page.margins.bottom - rowHeight) {
       doc.addPage();
     }
+
     const y = doc.y;
-    doc.font(bold ? "Helvetica-Bold" : "Helvetica").fontSize(11);
-    doc.text(cells[0], COLS.label, y, { width: COLS.value - COLS.label - 10 });
-    doc.text(cells[1], COLS.value, y, { width: COLS.unit - COLS.value - 10 });
-    doc.text(cells[2], COLS.unit, y, { width: doc.page.width - 50 - COLS.unit });
-    doc.y = y + ROW_HEIGHT;
+    doc.text(cells[0], COLS.label, y, { width: colWidths[0] });
+    doc.text(cells[1], COLS.value, y, { width: colWidths[1] });
+    doc.text(cells[2], COLS.unit, y, { width: colWidths[2] });
+    doc.y = y + rowHeight + 4;
   };
 
   drawRow(["Test", "Result", "Unit"], true);

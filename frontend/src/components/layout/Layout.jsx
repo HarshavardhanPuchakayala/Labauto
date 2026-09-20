@@ -1,6 +1,6 @@
 import { Link, Outlet, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
-import { logout } from "../../features/auth/authSlice.js";
+import { logout } from "../../features/auth/authSlice";
 
 function Layout() {
   const dispatch = useDispatch();
@@ -37,6 +37,7 @@ function Layout() {
               <Link to="/dashboard" className="hover:text-blue-600">Dashboard</Link>
               <Link to="/test-templates" className="hover:text-blue-600">Test Templates</Link>
               <Link to="/reports" className="hover:text-blue-600">Reports</Link>
+              <Link to="/lab-profile" className="hover:text-blue-600">Lab Profile</Link>
             </>
           )}
           {user?.role === "owner" && (

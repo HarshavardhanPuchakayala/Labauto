@@ -4,8 +4,7 @@ import AppError from "../utils/AppError.js";
 
 import { findPatientById } from "../repositories/patient.repository.js";
 import { findTemplateById } from "../repositories/testTemplate.repository.js";
-import { findLabById } from "../repositories/lab.repository.js";
-
+import { findLabWithLogoById } from "../repositories/lab.repository.js";
 import {
   createReport,
   findReportsByLab,
@@ -197,10 +196,9 @@ export const getReportForPdf = async (reportId, labId) => {
     throw new AppError("Report is missing patient or test template data", 422);
   }
 
-  const lab = await findLabById(labId);
-  if (!lab) {
-    throw new AppError("Lab not found", 404);
-  }
-
+const lab = await findLabWithLogoById(labId);
+if (!lab) {
+  throw new AppError("Lab not found", 404);
+}
   return { report, lab };
 };

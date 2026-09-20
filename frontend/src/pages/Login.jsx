@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { useDispatch } from "react-redux";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 
-import axiosInstance from "../api/axiosInstance.js";
-import { setCredentials } from "../features/auth/authSlice.js";
+import axiosInstance from "../api/axiosInstance";
+import { setCredentials } from "../features/auth/authSlice";
 
 function Login() {
   const dispatch = useDispatch();
@@ -16,16 +16,11 @@ function Login() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
     setError("");
     setLoading(true);
 
     try {
-      const response = await axiosInstance.post("/auth/login", {
-        email,
-        password,
-      });
-
+      const response = await axiosInstance.post("/auth/login", { email, password });
       const { user, token } = response.data;
 
       dispatch(setCredentials({ user, token }));
@@ -36,9 +31,7 @@ function Login() {
         navigate("/dashboard");
       }
     } catch (error) {
-      setError(
-        error.response?.data?.message || "Login failed. Please try again."
-      );
+      setError(error.response?.data?.message || "Login failed. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -47,22 +40,15 @@ function Login() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100 px-4">
       <div className="w-full max-w-md rounded-lg bg-white p-8 shadow-md">
-        <h1 className="mb-6 text-center text-2xl font-bold">
-          Login
-        </h1>
+        <h1 className="mb-6 text-center text-2xl font-bold">Login</h1>
 
         {error && (
-          <div className="mb-4 rounded-md bg-red-100 px-4 py-3 text-sm text-red-700">
-            {error}
-          </div>
+          <div className="mb-4 rounded-md bg-red-100 px-4 py-3 text-sm text-red-700">{error}</div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">
-              Email
-            </label>
-
+            <label className="mb-1 block text-sm font-medium text-gray-700">Email</label>
             <input
               type="email"
               value={email}
@@ -74,10 +60,7 @@ function Login() {
           </div>
 
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">
-              Password
-            </label>
-
+            <label className="mb-1 block text-sm font-medium text-gray-700">Password</label>
             <input
               type="password"
               value={password}
@@ -96,6 +79,13 @@ function Login() {
             {loading ? "Logging in..." : "Login"}
           </button>
         </form>
+
+        <p className="mt-4 text-center text-sm text-gray-600">
+          Don't have a lab account yet?{" "}
+          <Link to="/signup" className="text-blue-600 hover:underline">
+            Sign up
+          </Link>
+        </p>
       </div>
     </div>
   );
