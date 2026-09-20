@@ -1,5 +1,11 @@
 import { useState } from "react";
+import { FiMail, FiMapPin, FiPhone, FiUser, FiUserPlus } from "react-icons/fi";
+
 import axiosInstance from "../../api/axiosInstance.js";
+import Alert from "../ui/Alert";
+import Button from "../ui/Button";
+import Card, { CardBody, CardHeader } from "../ui/Card";
+import { Field, Input, Select } from "../ui/Form";
 
 function PatientForm({ onPatientCreated, onCancel }) {
   const [formData, setFormData] = useState({
@@ -53,130 +59,84 @@ function PatientForm({ onPatientCreated, onCancel }) {
   };
 
   return (
-    <div className="mb-6 rounded-lg bg-white p-6 shadow">
-      <div className="mb-4 flex items-center justify-between">
-        <h2 className="text-xl font-semibold">Add Patient</h2>
+    <Card className="mb-6">
+      <CardHeader
+        icon={FiUserPlus}
+        title="Add patient"
+        description="Name, date of birth and gender are required."
+      />
 
-        {onCancel && (
-          <button
-            type="button"
-            onClick={onCancel}
-            className="text-sm text-gray-500 hover:text-gray-700"
-          >
-            Cancel
-          </button>
-        )}
-      </div>
+      <CardBody>
+        {error && <Alert className="mb-5">{error}</Alert>}
 
-      {error && (
-        <div className="mb-4 rounded-md bg-red-100 px-4 py-3 text-sm text-red-700">
-          {error}
-        </div>
-      )}
+        <form onSubmit={handleSubmit} className="grid gap-4 md:grid-cols-2">
+          <Field label="Name">
+            <Input
+              icon={FiUser}
+              type="text"
+              name="name"
+              value={formData.name}
+              onChange={handleChange}
+              required
+            />
+          </Field>
 
-      <form onSubmit={handleSubmit} className="grid gap-4 md:grid-cols-2">
-        <div>
-          <label className="mb-1 block text-sm font-medium">
-            Name
-          </label>
+          <Field label="Date of birth">
+            <Input type="date" name="dob" value={formData.dob} onChange={handleChange} required />
+          </Field>
 
-          <input
-            type="text"
-            name="name"
-            value={formData.name}
-            onChange={handleChange}
-            required
-            className="w-full rounded-md border px-3 py-2"
-          />
-        </div>
+          <Field label="Gender">
+            <Select name="gender" value={formData.gender} onChange={handleChange} required>
+              <option value="">Select gender</option>
+              <option value="Male">Male</option>
+              <option value="Female">Female</option>
+              <option value="Other">Other</option>
+            </Select>
+          </Field>
 
-        <div>
-          <label className="mb-1 block text-sm font-medium">
-            Date of Birth
-          </label>
+          <Field label="Phone">
+            <Input
+              icon={FiPhone}
+              type="tel"
+              name="phone"
+              value={formData.phone}
+              onChange={handleChange}
+            />
+          </Field>
 
-          <input
-            type="date"
-            name="dob"
-            value={formData.dob}
-            onChange={handleChange}
-            required
-            className="w-full rounded-md border px-3 py-2"
-          />
-        </div>
+          <Field label="Email">
+            <Input
+              icon={FiMail}
+              type="email"
+              name="email"
+              value={formData.email}
+              onChange={handleChange}
+            />
+          </Field>
 
-        <div>
-          <label className="mb-1 block text-sm font-medium">
-            Gender
-          </label>
+          <Field label="Address">
+            <Input
+              icon={FiMapPin}
+              type="text"
+              name="address"
+              value={formData.address}
+              onChange={handleChange}
+            />
+          </Field>
 
-          <select
-            name="gender"
-            value={formData.gender}
-            onChange={handleChange}
-            required
-            className="w-full rounded-md border px-3 py-2"
-          >
-            <option value="">Select gender</option>
-            <option value="Male">Male</option>
-            <option value="Female">Female</option>
-            <option value="Other">Other</option>
-          </select>
-        </div>
-
-        <div>
-          <label className="mb-1 block text-sm font-medium">
-            Phone
-          </label>
-
-          <input
-            type="tel"
-            name="phone"
-            value={formData.phone}
-            onChange={handleChange}
-            className="w-full rounded-md border px-3 py-2"
-          />
-        </div>
-
-        <div>
-          <label className="mb-1 block text-sm font-medium">
-            Email
-          </label>
-
-          <input
-            type="email"
-            name="email"
-            value={formData.email}
-            onChange={handleChange}
-            className="w-full rounded-md border px-3 py-2"
-          />
-        </div>
-
-        <div>
-          <label className="mb-1 block text-sm font-medium">
-            Address
-          </label>
-
-          <input
-            type="text"
-            name="address"
-            value={formData.address}
-            onChange={handleChange}
-            className="w-full rounded-md border px-3 py-2"
-          />
-        </div>
-
-        <div className="md:col-span-2">
-          <button
-            type="submit"
-            disabled={loading}
-            className="rounded-md bg-blue-600 px-5 py-2 font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {loading ? "Creating..." : "Create Patient"}
-          </button>
-        </div>
-      </form>
-    </div>
+          <div className="flex items-center gap-2 md:col-span-2">
+            <Button type="submit" loading={loading} icon={FiUserPlus}>
+              {loading ? "Creating..." : "Create patient"}
+            </Button>
+            {onCancel && (
+              <Button type="button" variant="ghost" onClick={onCancel}>
+                Cancel
+              </Button>
+            )}
+          </div>
+        </form>
+      </CardBody>
+    </Card>
   );
 }
 

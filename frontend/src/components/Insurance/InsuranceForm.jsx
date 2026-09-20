@@ -1,5 +1,10 @@
 import { useState } from "react";
+import { FiSave } from "react-icons/fi";
+
 import axiosInstance from "../../api/axiosInstance.js";
+import Alert from "../ui/Alert";
+import Button from "../ui/Button";
+import { Field, Input } from "../ui/Form";
 
 function InsuranceForm({ patientId, onInsuranceAdded }) {
   const [formData, setFormData] = useState({
@@ -31,17 +36,49 @@ function InsuranceForm({ patientId, onInsuranceAdded }) {
   };
 
   return (
-    <div className="mb-4 rounded-md border bg-gray-50 p-4">
-      {error && <div className="mb-3 rounded-md bg-red-100 px-3 py-2 text-sm text-red-700">{error}</div>}
-      <form onSubmit={handleSubmit} className="grid gap-3 md:grid-cols-2">
-        <input name="provider" value={formData.provider} onChange={handleChange} required placeholder="Provider (e.g. Star Health)" className="rounded-md border px-3 py-2" />
-        <input name="policyNumber" value={formData.policyNumber} onChange={handleChange} required placeholder="Policy Number" className="rounded-md border px-3 py-2" />
-        <input name="policyHolderName" value={formData.policyHolderName} onChange={handleChange} required placeholder="Policy Holder Name" className="rounded-md border px-3 py-2" />
-        <input type="date" name="expiryDate" value={formData.expiryDate} onChange={handleChange} required className="rounded-md border px-3 py-2" />
+    <div className="mb-6 rounded-lg border border-teal-200 bg-teal-50/40 p-4 sm:p-5">
+      {error && <Alert className="mb-4">{error}</Alert>}
+      <form onSubmit={handleSubmit} className="grid gap-4 md:grid-cols-2">
+        <Field label="Provider">
+          <Input
+            name="provider"
+            value={formData.provider}
+            onChange={handleChange}
+            required
+            placeholder="Provider (e.g. Star Health)"
+          />
+        </Field>
+        <Field label="Policy number">
+          <Input
+            name="policyNumber"
+            value={formData.policyNumber}
+            onChange={handleChange}
+            required
+            placeholder="Policy Number"
+          />
+        </Field>
+        <Field label="Policy holder name">
+          <Input
+            name="policyHolderName"
+            value={formData.policyHolderName}
+            onChange={handleChange}
+            required
+            placeholder="Policy Holder Name"
+          />
+        </Field>
+        <Field label="Expiry date">
+          <Input
+            type="date"
+            name="expiryDate"
+            value={formData.expiryDate}
+            onChange={handleChange}
+            required
+          />
+        </Field>
         <div className="md:col-span-2">
-          <button type="submit" disabled={loading} className="rounded-md bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-50">
-            {loading ? "Saving..." : "Save Insurance"}
-          </button>
+          <Button type="submit" icon={FiSave} loading={loading}>
+            {loading ? "Saving..." : "Save insurance"}
+          </Button>
         </div>
       </form>
     </div>

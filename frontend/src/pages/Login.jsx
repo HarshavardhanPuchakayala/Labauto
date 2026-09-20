@@ -1,9 +1,14 @@
 import { useState } from "react";
 import { useDispatch } from "react-redux";
 import { useNavigate, Link } from "react-router-dom";
+import { FiLock, FiLogIn, FiMail } from "react-icons/fi";
 
 import axiosInstance from "../api/axiosInstance";
 import { setCredentials } from "../features/auth/authSlice";
+import Alert from "../components/ui/Alert";
+import AuthShell from "../components/ui/AuthShell";
+import Button from "../components/ui/Button";
+import { Field, Input } from "../components/ui/Form";
 
 function Login() {
   const dispatch = useDispatch();
@@ -38,56 +43,55 @@ function Login() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100 px-4">
-      <div className="w-full max-w-md rounded-lg bg-white p-8 shadow-md">
-        <h1 className="mb-6 text-center text-2xl font-bold">Login</h1>
-
-        {error && (
-          <div className="mb-4 rounded-md bg-red-100 px-4 py-3 text-sm text-red-700">{error}</div>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">Email</label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              className="w-full rounded-md border border-gray-300 px-3 py-2 outline-none focus:border-blue-500"
-              placeholder="Enter your email"
-            />
-          </div>
-
-          <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">Password</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              className="w-full rounded-md border border-gray-300 px-3 py-2 outline-none focus:border-blue-500"
-              placeholder="Enter your password"
-            />
-          </div>
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full rounded-md bg-blue-600 px-4 py-2 font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {loading ? "Logging in..." : "Login"}
-          </button>
-        </form>
-
-        <p className="mt-4 text-center text-sm text-gray-600">
+    <AuthShell
+      title="Log in to LabAuto"
+      subtitle="Pick up where you left off."
+      headline="Every sample, accounted for."
+      description="Follow each report from collection to delivery, using your lab's own test templates and letterhead."
+      footer={
+        <>
           Don't have a lab account yet?{" "}
-          <Link to="/signup" className="text-blue-600 hover:underline">
+          <Link
+            to="/signup"
+            className="font-medium text-teal-700 underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500"
+          >
             Sign up
           </Link>
-        </p>
-      </div>
-    </div>
+        </>
+      }
+    >
+      {error && <Alert className="mb-5">{error}</Alert>}
+
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <Field label="Email">
+          <Input
+            icon={FiMail}
+            type="email"
+            autoComplete="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+            placeholder="Enter your email"
+          />
+        </Field>
+
+        <Field label="Password">
+          <Input
+            icon={FiLock}
+            type="password"
+            autoComplete="current-password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+            placeholder="Enter your password"
+          />
+        </Field>
+
+        <Button type="submit" size="lg" icon={FiLogIn} loading={loading} className="w-full">
+          {loading ? "Logging in..." : "Log in"}
+        </Button>
+      </form>
+    </AuthShell>
   );
 }
 

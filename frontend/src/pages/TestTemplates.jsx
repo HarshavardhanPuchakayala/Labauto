@@ -1,8 +1,13 @@
 import { useEffect, useState } from "react";
+import { FiPlus, FiX } from "react-icons/fi";
 
 import axiosInstance from "../api/axiosInstance";
 import TemplateForm from "../components/templates/TemplateForm";
 import TemplateList from "../components/templates/TemplateList";
+import Alert from "../components/ui/Alert";
+import Button from "../components/ui/Button";
+import PageHeader from "../components/ui/PageHeader";
+import { CardSkeleton } from "../components/ui/Skeleton";
 
 function TestTemplates() {
   const [templates, setTemplates] = useState([]);
@@ -34,31 +39,33 @@ function TestTemplates() {
 
   return (
     <>
-      <div className="mb-6 flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Test Templates</h1>
-          <p className="text-gray-600">Create and manage test templates</p>
-        </div>
-
-        <button
-          onClick={() => setShowForm((prev) => !prev)}
-          className="rounded-md bg-blue-600 px-5 py-2 font-medium text-white hover:bg-blue-700"
-        >
-          {showForm ? "Close Form" : "New Template"}
-        </button>
-      </div>
+      <PageHeader
+        title="Test Templates"
+        description="Create and manage test templates"
+        actions={
+          <Button icon={showForm ? FiX : FiPlus} onClick={() => setShowForm((prev) => !prev)}>
+            {showForm ? "Close form" : "New template"}
+          </Button>
+        }
+      />
 
       {showForm && (
         <TemplateForm onTemplateCreated={handleTemplateCreated} onCancel={() => setShowForm(false)} />
       )}
 
-      {loading && <p className="py-6 text-center text-gray-600">Loading templates...</p>}
-
-      {error && (
-        <div className="mb-4 rounded-md bg-red-100 px-4 py-3 text-red-700">{error}</div>
+      {loading && (
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          <CardSkeleton lines={3} />
+          <CardSkeleton lines={3} />
+          <CardSkeleton lines={3} />
+        </div>
       )}
 
-      {!loading && !error && <TemplateList templates={templates} />}
+      {error && <Alert className="mb-4">{error}</Alert>}
+
+      {!loading && !error && (
+        <TemplateList templates={templates} onAddTemplate={() => setShowForm(true)} />
+      )}
     </>
   );
 }

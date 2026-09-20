@@ -1,6 +1,11 @@
 import { useState } from "react";
+import { FiBriefcase, FiCalendar, FiMail, FiPhone, FiPlus } from "react-icons/fi";
 
 import axiosInstance from "../../api/axiosInstance.js";
+import Alert from "../ui/Alert";
+import Button from "../ui/Button";
+import Card, { CardBody, CardHeader } from "../ui/Card";
+import { Field, Input, Textarea } from "../ui/Form";
 
 function LabForm({ onLabCreated, onCancel }) {
   const [formData, setFormData] = useState({
@@ -57,129 +62,88 @@ function LabForm({ onLabCreated, onCancel }) {
   };
 
   return (
-    <div className="mb-6 rounded-lg bg-white p-6 shadow">
-      <div className="mb-6 flex items-center justify-between">
-        <h2 className="text-xl font-semibold">
-          Create Lab
-        </h2>
+    <Card className="mb-6">
+      <CardHeader
+        icon={FiBriefcase}
+        title="Create lab"
+        description="Add a lab and set when its subscription expires."
+      />
 
-        {onCancel && (
-          <button
-            type="button"
-            onClick={onCancel}
-            className="text-sm text-gray-500 hover:text-gray-700"
-          >
-            Cancel
-          </button>
-        )}
-      </div>
+      <CardBody>
+        {error && <Alert className="mb-5">{error}</Alert>}
 
-      {error && (
-        <div className="mb-4 rounded-md bg-red-100 px-4 py-3 text-sm text-red-700">
-          {error}
-        </div>
-      )}
+        <form onSubmit={handleSubmit} className="grid gap-4 md:grid-cols-2">
+          <Field label="Lab name">
+            <Input
+              icon={FiBriefcase}
+              type="text"
+              name="name"
+              value={formData.name}
+              onChange={handleChange}
+              required
+              placeholder="Enter lab name"
+            />
+          </Field>
 
-      <form
-        onSubmit={handleSubmit}
-        className="grid gap-4 md:grid-cols-2"
-      >
-        {/* Name */}
-        <div>
-          <label className="mb-1 block text-sm font-medium">
-            Lab Name
-          </label>
+          <Field label="Phone">
+            <Input
+              icon={FiPhone}
+              type="tel"
+              name="phone"
+              value={formData.phone}
+              onChange={handleChange}
+              required
+              placeholder="Enter phone number"
+            />
+          </Field>
 
-          <input
-            type="text"
-            name="name"
-            value={formData.name}
-            onChange={handleChange}
-            required
-            placeholder="Enter lab name"
-            className="w-full rounded-md border px-3 py-2"
-          />
-        </div>
+          <Field label="Email">
+            <Input
+              icon={FiMail}
+              type="email"
+              name="email"
+              value={formData.email}
+              onChange={handleChange}
+              required
+              placeholder="Enter email"
+            />
+          </Field>
 
-        {/* Phone */}
-        <div>
-          <label className="mb-1 block text-sm font-medium">
-            Phone
-          </label>
+          <Field label="Subscription expires on">
+            <Input
+              icon={FiCalendar}
+              type="date"
+              name="subscriptionExpiresAt"
+              value={formData.subscriptionExpiresAt}
+              onChange={handleChange}
+              required
+            />
+          </Field>
 
-          <input
-            type="tel"
-            name="phone"
-            value={formData.phone}
-            onChange={handleChange}
-            required
-            placeholder="Enter phone number"
-            className="w-full rounded-md border px-3 py-2"
-          />
-        </div>
+          <Field label="Address" className="md:col-span-2">
+            <Textarea
+              name="address"
+              value={formData.address}
+              onChange={handleChange}
+              required
+              rows="3"
+              placeholder="Enter lab address"
+            />
+          </Field>
 
-        {/* Email */}
-        <div>
-          <label className="mb-1 block text-sm font-medium">
-            Email
-          </label>
-
-          <input
-            type="email"
-            name="email"
-            value={formData.email}
-            onChange={handleChange}
-            required
-            placeholder="Enter email"
-            className="w-full rounded-md border px-3 py-2"
-          />
-        </div>
-
-        {/* Expiry */}
-        <div>
-          <label className="mb-1 block text-sm font-medium">
-            Subscription Expires On
-          </label>
-
-          <input
-            type="date"
-            name="subscriptionExpiresAt"
-            value={formData.subscriptionExpiresAt}
-            onChange={handleChange}
-            required
-            className="w-full rounded-md border px-3 py-2"
-          />
-        </div>
-
-        {/* Address */}
-        <div className="md:col-span-2">
-          <label className="mb-1 block text-sm font-medium">
-            Address
-          </label>
-
-          <textarea
-            name="address"
-            value={formData.address}
-            onChange={handleChange}
-            required
-            rows="3"
-            placeholder="Enter lab address"
-            className="w-full rounded-md border px-3 py-2"
-          />
-        </div>
-
-        {/* Submit */}
-        <div className="md:col-span-2">
-          <button
-            type="submit"
-            disabled={loading}
-            className="rounded-md bg-blue-600 px-5 py-2 font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {loading ? "Creating..." : "Create Lab"}
-          </button>
-        </div>
-      </form>
-    </div>
+          <div className="flex items-center gap-2 md:col-span-2">
+            <Button type="submit" icon={FiPlus} loading={loading}>
+              {loading ? "Creating..." : "Create lab"}
+            </Button>
+            {onCancel && (
+              <Button type="button" variant="ghost" onClick={onCancel}>
+                Cancel
+              </Button>
+            )}
+          </div>
+        </form>
+      </CardBody>
+    </Card>
   );
 }
 

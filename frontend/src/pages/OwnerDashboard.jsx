@@ -1,8 +1,14 @@
 import { useCallback, useEffect, useState } from "react";
+import { FiPlus, FiX } from "react-icons/fi";
 
 import axiosInstance from "../api/axiosInstance.js";
 import LabForm from "../components/labs/LabForm.jsx";
 import LabTable from "../components/labs/LabTable.jsx";
+import Alert from "../components/ui/Alert";
+import Button from "../components/ui/Button";
+import PageHeader from "../components/ui/PageHeader";
+import { TableSkeleton } from "../components/ui/Skeleton";
+import StatStrip from "../components/ui/StatStrip";
 
 function OwnerDashboard() {
   const [labs, setLabs] = useState([]);
@@ -40,55 +46,66 @@ function OwnerDashboard() {
     await fetchLabs();
   };
 
+  const countStatus = (status) => labs.filter((lab) => lab.subscriptionStatus === status).length;
+  const technicianTotal = labs.reduce((sum, lab) => sum + (lab.technicianCount ?? 0), 0);
+  const needsAttention = labs.filter(
+    (lab) => lab.subscriptionStatus === "expired" || lab.isExpiringSoon
+  ).length;
+
   return (
-    <div className="min-h-screen bg-gray-100 p-6">
-      <div className="mx-auto max-w-7xl">
-        <div className="mb-6 flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold">
-              Owner Dashboard
-            </h1>
+    <>
+      <PageHeader
+        title="Owner Dashboard"
+        description="Manage labs and subscriptions"
+        actions={
+          <Button icon={showForm ? FiX : FiPlus} onClick={() => setShowForm((prev) => !prev)}>
+            {showForm ? "Close form" : "New lab"}
+          </Button>
+        }
+      />
 
-            <p className="text-gray-600">
-              Manage labs and subscriptions
-            </p>
-          </div>
+      {showForm && (
+        <LabForm
+          onLabCreated={handleLabCreated}
+          onCancel={() => setShowForm(false)}
+        />
+      )}
 
-          <button
-            onClick={() => setShowForm((prev) => !prev)}
-            className="rounded-md bg-blue-600 px-5 py-2 font-medium text-white hover:bg-blue-700"
-          >
-            {showForm ? "Close Form" : "New Lab"}
-          </button>
-        </div>
+      {!error && (
+        <StatStrip
+          className="mb-6"
+          loading={loading}
+          items={[
+            {
+              label: "Total labs",
+              value: labs.length,
+              tone: "teal",
+              hint: `${technicianTotal} ${technicianTotal === 1 ? "technician" : "technicians"} across all labs`,
+            },
+            { label: "Active", value: countStatus("active"), tone: "emerald" },
+            { label: "On trial", value: countStatus("trial"), tone: "sky" },
+            {
+              label: "Need attention",
+              value: needsAttention,
+              tone: "amber",
+              hint: "Expired or expiring soon",
+            },
+          ]}
+        />
+      )}
 
-        {showForm && (
-          <LabForm
-            onLabCreated={handleLabCreated}
-            onCancel={() => setShowForm(false)}
-          />
-        )}
+      {loading && <TableSkeleton rows={5} columns={5} />}
 
-        {loading && (
-          <p className="py-6 text-center text-gray-600">
-            Loading labs...
-          </p>
-        )}
+      {error && <Alert className="mb-4">{error}</Alert>}
 
-        {error && (
-          <div className="mb-4 rounded-md bg-red-100 px-4 py-3 text-red-700">
-            {error}
-          </div>
-        )}
-
-        {!loading && !error && (
-          <LabTable
-            labs={labs}
-            onRenewed={fetchLabs}
-          />
-        )}
-      </div>
-    </div>
+      {!loading && !error && (
+        <LabTable
+          labs={labs}
+          onRenewed={fetchLabs}
+          onAddLab={() => setShowForm(true)}
+        />
+      )}
+    </>
   );
 }
 

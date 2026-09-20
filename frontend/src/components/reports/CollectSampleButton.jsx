@@ -1,6 +1,9 @@
 import { useState } from "react";
+import { FiDroplet } from "react-icons/fi";
 
 import axiosInstance from "../../api/axiosInstance.js";
+import Alert from "../ui/Alert";
+import Button from "../ui/Button";
 
 function CollectSampleButton({ reportId, onUpdated }) {
   const [loading, setLoading] = useState(false);
@@ -28,20 +31,11 @@ function CollectSampleButton({ reportId, onUpdated }) {
 
   return (
     <div>
-      <button
-        type="button"
-        onClick={handleCollectSample}
-        disabled={loading}
-        className="rounded-md bg-yellow-600 px-5 py-2 font-medium text-white hover:bg-yellow-700 disabled:cursor-not-allowed disabled:opacity-50"
-      >
-        {loading ? "Collecting..." : "Collect Sample"}
-      </button>
+      <Button size="lg" icon={FiDroplet} onClick={handleCollectSample} loading={loading}>
+        {loading ? "Collecting..." : "Collect sample"}
+      </Button>
 
-      {error && (
-        <p className="mt-2 text-sm text-red-600">
-          {error}
-        </p>
-      )}
+      {error && <Alert className="mt-4">{error}</Alert>}
     </div>
   );
 }

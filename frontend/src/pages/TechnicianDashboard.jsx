@@ -1,8 +1,16 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
+import { FiFileText, FiPlus, FiSearch, FiX } from "react-icons/fi";
 
 import axiosInstance from "../api/axiosInstance";
 import PatientForm from "../components/patients/patientForm";
 import PatientTable from "../components/patients/PatientTable";
+import Alert from "../components/ui/Alert";
+import Button, { buttonClasses } from "../components/ui/Button";
+import { Input } from "../components/ui/Form";
+import PageHeader from "../components/ui/PageHeader";
+import { TableSkeleton } from "../components/ui/Skeleton";
+import StatStrip from "../components/ui/StatStrip";
 
 function TechnicianDashboard() {
   const [patients, setPatients] = useState([]);
@@ -40,39 +48,63 @@ function TechnicianDashboard() {
 
   return (
     <>
-      <div className="mb-6 flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Technician Dashboard</h1>
-          <p className="text-gray-600">Manage patients</p>
-        </div>
-
-        <button
-          onClick={() => setShowForm((prev) => !prev)}
-          className="rounded-md bg-blue-600 px-5 py-2 font-medium text-white hover:bg-blue-700"
-        >
-          {showForm ? "Close Form" : "New Patient"}
-        </button>
-      </div>
-
-      <input
-        type="text"
-        placeholder="Search by name or phone..."
-        value={searchTerm}
-        onChange={(e) => setSearchTerm(e.target.value)}
-        className="mb-4 w-full max-w-md rounded-md border px-3 py-2"
+      <PageHeader
+        title="Technician Dashboard"
+        description="Manage patients"
+        actions={
+          <>
+            <Link to="/reports" className={buttonClasses({ variant: "secondary" })}>
+              <FiFileText className="h-4 w-4" aria-hidden="true" />
+              Reports
+            </Link>
+            <Button icon={showForm ? FiX : FiPlus} onClick={() => setShowForm((prev) => !prev)}>
+              {showForm ? "Close form" : "New patient"}
+            </Button>
+          </>
+        }
       />
 
       {showForm && (
         <PatientForm onPatientCreated={handlePatientCreated} onCancel={() => setShowForm(false)} />
       )}
 
-      {loading && <p className="py-6 text-center text-gray-600">Loading patients...</p>}
-
-      {error && (
-        <div className="mb-4 rounded-md bg-red-100 px-4 py-3 text-red-700">{error}</div>
+      {!error && (
+        <StatStrip
+          className="mb-6"
+          loading={loading}
+          items={[
+            { label: "Total patients", value: patients.length, tone: "teal" },
+            {
+              label: searchTerm ? "Matching your search" : "Showing",
+              value: filteredPatients.length,
+              tone: "sky",
+            },
+          ]}
+        />
       )}
 
-      {!loading && !error && <PatientTable patients={filteredPatients} />}
+      <div className="mb-4 max-w-md">
+        <Input
+          icon={FiSearch}
+          type="text"
+          aria-label="Search patients by name or phone"
+          placeholder="Search by name or phone..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+        />
+      </div>
+
+      {loading && <TableSkeleton rows={6} columns={5} />}
+
+      {error && <Alert className="mb-4">{error}</Alert>}
+
+      {!loading && !error && (
+        <PatientTable
+          patients={filteredPatients}
+          searchTerm={searchTerm}
+          onAddPatient={() => setShowForm(true)}
+        />
+      )}
     </>
   );
 }

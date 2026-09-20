@@ -1,5 +1,27 @@
 import { useCallback, useEffect, useState } from "react";
+import {
+  FiFileText,
+  FiImage,
+  FiMail,
+  FiMapPin,
+  FiPhone,
+  FiSave,
+  FiSettings,
+  FiTag,
+  FiUpload,
+  FiUploadCloud,
+  FiBriefcase,
+} from "react-icons/fi";
+
 import axiosInstance from "../api/axiosInstance";
+import Alert from "../components/ui/Alert";
+import Badge, { SubscriptionBadge } from "../components/ui/Badge";
+import Button from "../components/ui/Button";
+import Card, { CardBody, CardHeader } from "../components/ui/Card";
+import { Field, Input, Textarea } from "../components/ui/Form";
+import { FlaskIcon } from "../components/ui/Logo";
+import PageHeader from "../components/ui/PageHeader";
+import { CardSkeleton } from "../components/ui/Skeleton";
 
 function LabProfile() {
   const [lab, setLab] = useState(null);
@@ -97,134 +119,209 @@ function LabProfile() {
   };
 
   if (loading) {
-    return <p className="py-10 text-center text-gray-600">Loading lab profile...</p>;
+    return (
+      <div className="space-y-6">
+        <CardSkeleton lines={5} />
+        <CardSkeleton lines={2} />
+      </div>
+    );
   }
 
   if (!lab) {
-    return <div className="rounded-md bg-red-100 px-4 py-3 text-red-700">{error}</div>;
+    return <Alert>{error}</Alert>;
   }
 
   return (
     <>
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold">Lab Profile</h1>
-        <p className="text-gray-600">Manage your lab's information and branding</p>
-      </div>
+      <PageHeader
+        title="Lab Profile"
+        description="Manage your lab's information and branding"
+      />
 
-      {error && (
-        <div className="mb-4 rounded-md bg-red-100 px-4 py-3 text-sm text-red-700">{error}</div>
-      )}
-
+      {error && <Alert className="mb-4">{error}</Alert>}
       {success && (
-        <div className="mb-4 rounded-md bg-green-100 px-4 py-3 text-sm text-green-700">{success}</div>
+        <Alert tone="success" className="mb-4">
+          {success}
+        </Alert>
       )}
 
-      <div className="mb-6 rounded-lg bg-white p-6 shadow">
-        <h2 className="mb-4 text-lg font-semibold">Lab Details</h2>
+      <div className="grid items-start gap-6 xl:grid-cols-3">
+        <div className="space-y-6 xl:col-span-2">
+          <Card>
+            <CardHeader
+              icon={FiSettings}
+              title="Lab details"
+              description="Shown on your reports and used across your account."
+            />
+            <CardBody>
+              <div className="mb-5 flex flex-wrap items-center gap-x-3 gap-y-2 text-sm text-slate-500">
+                <span>
+                  Lab ID{" "}
+                  <span className="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-xs text-slate-700">
+                    {lab.labId}
+                  </span>
+                </span>
+                <SubscriptionBadge status={lab.subscriptionStatus} />
+                <span>Subscription is managed by the platform owner.</span>
+              </div>
 
-        <div className="mb-4 text-sm text-gray-500">
-          Lab ID: <span className="font-medium text-gray-700">{lab.labId}</span>
-          {" · "}
-          Subscription: <span className="font-medium text-gray-700">{lab.subscriptionStatus}</span>
-          {" (managed by platform owner)"}
+              <form onSubmit={handleSubmit} className="grid gap-4 md:grid-cols-2">
+                <Field label="Lab name">
+                  <Input
+                    icon={FiBriefcase}
+                    type="text"
+                    name="name"
+                    value={formData.name}
+                    onChange={handleChange}
+                    required
+                  />
+                </Field>
+
+                <Field label="Phone">
+                  <Input
+                    icon={FiPhone}
+                    type="tel"
+                    name="phone"
+                    value={formData.phone}
+                    onChange={handleChange}
+                    required
+                  />
+                </Field>
+
+                <Field label="Email">
+                  <Input
+                    icon={FiMail}
+                    type="email"
+                    name="email"
+                    value={formData.email}
+                    onChange={handleChange}
+                    required
+                  />
+                </Field>
+
+                <Field label="Tagline" hint={`${formData.tagline.length}/120`}>
+                  <Input
+                    icon={FiTag}
+                    type="text"
+                    name="tagline"
+                    value={formData.tagline}
+                    onChange={handleChange}
+                    placeholder="e.g. Trusted Diagnostics Since 2015"
+                    maxLength={120}
+                  />
+                </Field>
+
+                <Field label="Address" className="md:col-span-2">
+                  <Textarea
+                    name="address"
+                    value={formData.address}
+                    onChange={handleChange}
+                    required
+                    rows="3"
+                  />
+                </Field>
+
+                <div className="md:col-span-2">
+                  <Button type="submit" icon={FiSave} loading={saving}>
+                    {saving ? "Saving..." : "Save changes"}
+                  </Button>
+                </div>
+              </form>
+            </CardBody>
+          </Card>
+
+          <Card>
+            <CardHeader
+              icon={FiImage}
+              title="Report logo"
+              description="Used as the letterhead logo and watermark on generated PDF reports."
+              action={
+                lab.hasLogo ? (
+                  <Badge tone="success">Logo set</Badge>
+                ) : (
+                  <Badge>No logo yet</Badge>
+                )
+              }
+            />
+            <CardBody>
+              <p className="mb-4 text-sm text-slate-500">
+                {lab.hasLogo ? "A logo is currently set for your reports." : "No logo uploaded yet."}
+              </p>
+
+              <label className="flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-slate-300 bg-slate-50 px-6 py-8 text-center transition-colors duration-200 hover:border-teal-400 hover:bg-teal-50/50 focus-within:border-teal-500 focus-within:ring-2 focus-within:ring-teal-500/25">
+                <input
+                  type="file"
+                  accept="image/png,image/jpeg"
+                  onChange={handleLogoChange}
+                  className="sr-only"
+                />
+                <FiUploadCloud className="mb-2 h-7 w-7 text-teal-600" aria-hidden="true" />
+                <span className="text-sm font-medium text-slate-900">
+                  {logoFile ? logoFile.name : "Choose a logo file"}
+                </span>
+                <span className="mt-1 text-xs text-slate-500">PNG or JPG</span>
+              </label>
+
+              <div className="mt-4">
+                <Button
+                  variant="dark"
+                  icon={FiUpload}
+                  onClick={handleLogoUpload}
+                  loading={uploadingLogo}
+                >
+                  {uploadingLogo ? "Uploading..." : "Upload logo"}
+                </Button>
+              </div>
+            </CardBody>
+          </Card>
         </div>
 
-        <form onSubmit={handleSubmit} className="grid gap-4 md:grid-cols-2">
-          <div>
-            <label className="mb-1 block text-sm font-medium">Lab Name</label>
-            <input
-              type="text"
-              name="name"
-              value={formData.name}
-              onChange={handleChange}
-              required
-              className="w-full rounded-md border px-3 py-2"
-            />
-          </div>
-
-          <div>
-            <label className="mb-1 block text-sm font-medium">Phone</label>
-            <input
-              type="tel"
-              name="phone"
-              value={formData.phone}
-              onChange={handleChange}
-              required
-              className="w-full rounded-md border px-3 py-2"
-            />
-          </div>
-
-          <div>
-            <label className="mb-1 block text-sm font-medium">Email</label>
-            <input
-              type="email"
-              name="email"
-              value={formData.email}
-              onChange={handleChange}
-              required
-              className="w-full rounded-md border px-3 py-2"
-            />
-          </div>
-
-          <div>
-            <label className="mb-1 block text-sm font-medium">Tagline</label>
-            <input
-              type="text"
-              name="tagline"
-              value={formData.tagline}
-              onChange={handleChange}
-              placeholder="e.g. Trusted Diagnostics Since 2015"
-              maxLength={120}
-              className="w-full rounded-md border px-3 py-2"
-            />
-          </div>
-
-          <div className="md:col-span-2">
-            <label className="mb-1 block text-sm font-medium">Address</label>
-            <textarea
-              name="address"
-              value={formData.address}
-              onChange={handleChange}
-              required
-              rows="3"
-              className="w-full rounded-md border px-3 py-2"
-            />
-          </div>
-
-          <div className="md:col-span-2">
-            <button
-              type="submit"
-              disabled={saving}
-              className="rounded-md bg-blue-600 px-5 py-2 font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {saving ? "Saving..." : "Save Changes"}
-            </button>
-          </div>
-        </form>
-      </div>
-
-      <div className="rounded-lg bg-white p-6 shadow">
-        <h2 className="mb-4 text-lg font-semibold">Report Logo</h2>
-        <p className="mb-4 text-sm text-gray-500">
-          {lab.hasLogo ? "A logo is currently set for your reports." : "No logo uploaded yet."}
-        </p>
-
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-          <input
-            type="file"
-            accept="image/png,image/jpeg"
-            onChange={handleLogoChange}
-            className="text-sm"
+        <Card className="xl:sticky xl:top-6">
+          <CardHeader
+            icon={FiFileText}
+            title="Letterhead preview"
+            description="Updates as you type. Your uploaded logo appears here on the PDF."
           />
-          <button
-            type="button"
-            onClick={handleLogoUpload}
-            disabled={uploadingLogo}
-            className="rounded-md bg-gray-700 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {uploadingLogo ? "Uploading..." : "Upload Logo"}
-          </button>
-        </div>
+          <CardBody>
+            <div className="relative overflow-hidden rounded-lg border border-slate-200 bg-white p-5">
+              <FlaskIcon className="pointer-events-none absolute -bottom-8 -right-8 h-44 w-44 text-teal-600 opacity-[0.06]" />
+
+              <div className="relative">
+                <div className="flex items-center gap-3 border-b border-slate-200 pb-3">
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-dashed border-slate-300 text-slate-400">
+                    <FiImage className="h-4 w-4" aria-hidden="true" />
+                  </span>
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold text-slate-900">
+                      {formData.name || "Your lab name"}
+                    </p>
+                    <p className="truncate text-xs text-slate-500">
+                      {formData.tagline || "Your tagline"}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="space-y-2 py-5" aria-hidden="true">
+                  <div className="h-2 w-2/3 rounded bg-slate-100" />
+                  <div className="h-2 w-full rounded bg-slate-100" />
+                  <div className="h-2 w-5/6 rounded bg-slate-100" />
+                  <div className="h-2 w-1/2 rounded bg-slate-100" />
+                </div>
+
+                <div className="space-y-0.5 border-t border-slate-200 pt-3 text-xs text-slate-500">
+                  <p className="break-words">
+                    {[formData.phone, formData.email].filter(Boolean).join(" · ") ||
+                      "Phone and email"}
+                  </p>
+                  <p className="flex items-start gap-1 break-words">
+                    <FiMapPin className="mt-0.5 h-3 w-3 shrink-0" aria-hidden="true" />
+                    {formData.address || "Lab address"}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </CardBody>
+        </Card>
       </div>
     </>
   );

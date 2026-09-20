@@ -1,9 +1,22 @@
 import { useState } from "react";
 import { useDispatch } from "react-redux";
 import { useNavigate, Link } from "react-router-dom";
+import {
+  FiBriefcase,
+  FiLock,
+  FiMail,
+  FiMapPin,
+  FiPhone,
+  FiUser,
+  FiUserPlus,
+} from "react-icons/fi";
 
 import axiosInstance from "../api/axiosInstance";
 import { setCredentials } from "../features/auth/authSlice";
+import Alert from "../components/ui/Alert";
+import AuthShell from "../components/ui/AuthShell";
+import Button from "../components/ui/Button";
+import { Field, Input } from "../components/ui/Form";
 
 function LabSignup() {
   const dispatch = useDispatch();
@@ -46,111 +59,128 @@ function LabSignup() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100 px-4 py-8">
-      <div className="w-full max-w-2xl rounded-lg bg-white p-8 shadow-md">
-        <h1 className="mb-2 text-center text-2xl font-bold">Create Your Lab Account</h1>
-        <p className="mb-6 text-center text-sm text-gray-600">
-          Start your 14-day free trial — no payment required.
-        </p>
+    <AuthShell
+      wide
+      title="Create your lab account"
+      subtitle="Start your 14-day free trial. No payment required."
+      headline="Set up your lab in a few minutes."
+      description="Register your lab and your technician account together, then start adding patients and reports."
+      points={[
+        "14-day free trial, no card needed",
+        "Custom test templates with normal ranges",
+        "Your logo on every PDF report",
+      ]}
+      footer={
+        <>
+          Already have an account?{" "}
+          <Link
+            to="/login"
+            className="font-medium text-teal-700 underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500"
+          >
+            Log in
+          </Link>
+        </>
+      }
+    >
+      {error && <Alert className="mb-5">{error}</Alert>}
 
-        {error && (
-          <div className="mb-4 rounded-md bg-red-100 px-4 py-3 text-sm text-red-700">{error}</div>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div>
-            <h2 className="mb-3 font-semibold text-gray-700">Lab Information</h2>
-            <div className="grid gap-4 md:grid-cols-2">
-              <input
+      <form onSubmit={handleSubmit} className="space-y-8">
+        <fieldset>
+          <legend className="mb-4 text-sm font-semibold text-slate-900">Lab information</legend>
+          <div className="grid gap-4 md:grid-cols-2">
+            <Field label="Lab name">
+              <Input
+                icon={FiBriefcase}
                 type="text"
                 name="labName"
                 value={formData.labName}
                 onChange={handleChange}
                 required
                 placeholder="Lab Name"
-                className="w-full rounded-md border px-3 py-2"
               />
-              <input
+            </Field>
+            <Field label="Lab phone">
+              <Input
+                icon={FiPhone}
                 type="tel"
                 name="labPhone"
                 value={formData.labPhone}
                 onChange={handleChange}
                 required
                 placeholder="Lab Phone"
-                className="w-full rounded-md border px-3 py-2"
               />
-              <input
+            </Field>
+            <Field label="Lab email">
+              <Input
+                icon={FiMail}
                 type="email"
                 name="labEmail"
                 value={formData.labEmail}
                 onChange={handleChange}
                 required
                 placeholder="Lab Email"
-                className="w-full rounded-md border px-3 py-2"
               />
-              <input
+            </Field>
+            <Field label="Lab address">
+              <Input
+                icon={FiMapPin}
                 type="text"
                 name="labAddress"
                 value={formData.labAddress}
                 onChange={handleChange}
                 required
                 placeholder="Lab Address"
-                className="w-full rounded-md border px-3 py-2"
               />
-            </div>
+            </Field>
           </div>
+        </fieldset>
 
-          <div>
-            <h2 className="mb-3 font-semibold text-gray-700">Your Account</h2>
-            <div className="grid gap-4 md:grid-cols-2">
-              <input
+        <fieldset>
+          <legend className="mb-4 text-sm font-semibold text-slate-900">Your account</legend>
+          <div className="grid gap-4 md:grid-cols-2">
+            <Field label="Your name">
+              <Input
+                icon={FiUser}
                 type="text"
                 name="technicianName"
                 value={formData.technicianName}
                 onChange={handleChange}
                 required
                 placeholder="Your Name"
-                className="w-full rounded-md border px-3 py-2"
               />
-              <input
+            </Field>
+            <Field label="Your email">
+              <Input
+                icon={FiMail}
                 type="email"
                 name="technicianEmail"
                 value={formData.technicianEmail}
                 onChange={handleChange}
                 required
                 placeholder="Your Email"
-                className="w-full rounded-md border px-3 py-2"
               />
-              <input
+            </Field>
+            <Field label="Password" hint="Use at least 8 characters." className="md:col-span-2">
+              <Input
+                icon={FiLock}
                 type="password"
                 name="technicianPassword"
+                autoComplete="new-password"
                 value={formData.technicianPassword}
                 onChange={handleChange}
                 required
                 minLength={8}
                 placeholder="Password (min 8 characters)"
-                className="w-full rounded-md border px-3 py-2 md:col-span-2"
               />
-            </div>
+            </Field>
           </div>
+        </fieldset>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full rounded-md bg-blue-600 px-4 py-2 font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {loading ? "Creating your account..." : "Create Lab Account"}
-          </button>
-        </form>
-
-        <p className="mt-4 text-center text-sm text-gray-600">
-          Already have an account?{" "}
-          <Link to="/login" className="text-blue-600 hover:underline">
-            Log in
-          </Link>
-        </p>
-      </div>
-    </div>
+        <Button type="submit" size="lg" icon={FiUserPlus} loading={loading} className="w-full">
+          {loading ? "Creating your account..." : "Create lab account"}
+        </Button>
+      </form>
+    </AuthShell>
   );
 }
 

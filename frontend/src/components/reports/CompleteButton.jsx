@@ -1,6 +1,9 @@
 import { useState } from "react";
+import { FiCheckCircle } from "react-icons/fi";
 
 import axiosInstance from "../../api/axiosInstance.js";
+import Alert from "../ui/Alert";
+import Button from "../ui/Button";
 
 function CompleteButton({ reportId, onUpdated }) {
   const [loading, setLoading] = useState(false);
@@ -28,20 +31,17 @@ function CompleteButton({ reportId, onUpdated }) {
 
   return (
     <div>
-      <button
-        type="button"
+      <Button
+        variant="success"
+        size="lg"
+        icon={FiCheckCircle}
         onClick={handleComplete}
-        disabled={loading}
-        className="rounded-md bg-green-600 px-5 py-2 font-medium text-white hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-50"
+        loading={loading}
       >
-        {loading ? "Completing..." : "Mark Complete"}
-      </button>
+        {loading ? "Completing..." : "Mark complete"}
+      </Button>
 
-      {error && (
-        <p className="mt-2 text-sm text-red-600">
-          {error}
-        </p>
-      )}
+      {error && <Alert className="mt-4">{error}</Alert>}
     </div>
   );
 }

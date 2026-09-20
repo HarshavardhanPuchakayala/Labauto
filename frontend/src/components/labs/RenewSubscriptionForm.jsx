@@ -1,6 +1,10 @@
 import { useState } from "react";
+import { FiCheck } from "react-icons/fi";
 
 import axiosInstance from "../../api/axiosInstance.js";
+import Alert from "../ui/Alert";
+import Button from "../ui/Button";
+import { Field, Input } from "../ui/Form";
 
 function RenewSubscriptionForm({
   labId,
@@ -50,40 +54,27 @@ function RenewSubscriptionForm({
   };
 
   return (
-    <div className="mt-3 rounded-md border bg-gray-50 p-4">
-      {error && (
-        <div className="mb-3 rounded-md bg-red-100 px-3 py-2 text-sm text-red-700">
-          {error}
-        </div>
-      )}
+    <div className="max-w-xl rounded-lg border border-teal-200 bg-white p-4 text-left">
+      {error && <Alert className="mb-3">{error}</Alert>}
 
       <form
         onSubmit={handleSubmit}
         className="flex flex-col gap-3 sm:flex-row sm:items-end"
       >
-        <div>
-          <label className="mb-1 block text-sm font-medium">
-            New Expiry Date
-          </label>
-
-          <input
+        <Field label="New expiry date" className="sm:w-56">
+          <Input
             type="date"
             value={newExpiryDate}
             onChange={(e) =>
               setNewExpiryDate(e.target.value)
             }
             required
-            className="rounded-md border px-3 py-2"
           />
-        </div>
+        </Field>
 
-        <button
-          type="submit"
-          disabled={loading}
-          className="rounded-md bg-green-600 px-4 py-2 font-medium text-white hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          {loading ? "Renewing..." : "Confirm Renewal"}
-        </button>
+        <Button type="submit" icon={FiCheck} loading={loading}>
+          {loading ? "Renewing..." : "Confirm renewal"}
+        </Button>
       </form>
     </div>
   );
