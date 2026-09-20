@@ -1,14 +1,16 @@
 import express from "express";
-
 import {
   createReportHandler,
+  createReportsBatchHandler,
   getReportsHandler,
+  getReportByIdHandler,
+  getVisitHandler,
   collectSampleHandler,
   enterResultsHandler,
   completeHandler,
   deliverReportHandler,
-  getReportByIdHandler,
-  generateReportPdfHandler
+  generateReportPdfHandler,
+  getVisitPdfHandler,
 } from "../controllers/report.controller.js";
 
 import { verifyToken } from "../middlewares/auth.middleware.js";
@@ -16,32 +18,17 @@ import { verifyToken } from "../middlewares/auth.middleware.js";
 const router = express.Router();
 
 router.post("/", verifyToken, createReportHandler);
+router.post("/batch", verifyToken, createReportsBatchHandler);
 
 router.get("/", verifyToken, getReportsHandler);
+router.get("/visit/:visitId", verifyToken, getVisitHandler);
+router.get("/visit/:visitId/pdf", verifyToken, getVisitPdfHandler);
 router.get("/:id", verifyToken, getReportByIdHandler);
 router.get("/:id/pdf", verifyToken, generateReportPdfHandler);
-router.patch(
-  "/:id/collect-sample",
-  verifyToken,
-  collectSampleHandler
-);
 
-router.patch(
-  "/:id/enter-results",
-  verifyToken,
-  enterResultsHandler
-);
-
-router.patch(
-  "/:id/complete",
-  verifyToken,
-  completeHandler
-);
-
-router.patch(
-  "/:id/deliver",
-  verifyToken,
-  deliverReportHandler
-);
+router.patch("/:id/collect-sample", verifyToken, collectSampleHandler);
+router.patch("/:id/enter-results", verifyToken, enterResultsHandler);
+router.patch("/:id/complete", verifyToken, completeHandler);
+router.patch("/:id/deliver", verifyToken, deliverReportHandler);
 
 export default router;

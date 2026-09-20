@@ -14,6 +14,7 @@ const reportSchema = new mongoose.Schema(
     labId: { type: mongoose.Schema.Types.ObjectId, ref: "Lab", required: true },
     technician: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
     testTemplate: { type: mongoose.Schema.Types.ObjectId, ref: "TestTemplate", required: true },
+    visitId: { type: String, index: true }, // groups reports created together for one patient visit
     results: { type: [resultSchema], default: [] },
     status: {
       type: String,
@@ -23,14 +24,8 @@ const reportSchema = new mongoose.Schema(
     sampleCollectedAt: { type: Date },
     resultsEnteredAt: { type: Date },
     completedAt: { type: Date },
-    deliveryMethod: {
-  type: String,
-  enum: ["digital", "physical"],
-},
-
-deliveredAt: {
-  type: Date,
-},
+    deliveryMethod: { type: String, enum: ["digital", "physical"] },
+    deliveredAt: { type: Date },
   },
   { timestamps: true }
 );

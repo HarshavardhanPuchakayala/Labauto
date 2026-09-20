@@ -1,45 +1,73 @@
 import mongoose from "mongoose";
-
 import AppError from "../utils/AppError.js";
+import { generateSequenceId } from "../utils/generateSequenceId.js";
 
 import { findPatientById } from "../repositories/patient.repository.js";
 import { findTemplateById } from "../repositories/testTemplate.repository.js";
 import { findLabWithLogoById } from "../repositories/lab.repository.js";
+
 import {
   createReport,
   findReportsByLab,
   findReportById,
+  findReportsByVisit,
   updateReport,
 } from "../repositories/report.repository.js";
 
 export const createReportForLab = async (data, labId, technicianId) => {
   const patient = await findPatientById(data.patient);
-
-  if (!patient) {
-    throw new AppError("Patient not found", 404);
-  }
-
+  if (!patient) throw new AppError("Patient not found", 404);
   if (patient.labId.toString() !== labId.toString()) {
     throw new AppError("Patient does not belong to your lab", 403);
   }
 
   const template = await findTemplateById(data.testTemplate);
-
-  if (!template) {
-    throw new AppError("Test template not found", 404);
-  }
-
+  if (!template) throw new AppError("Test template not found", 404);
   if (template.labId.toString() !== labId.toString()) {
     throw new AppError("Test template does not belong to your lab", 403);
   }
 
-  const reportData = {
-    ...data,
-    labId,
-    technician: technicianId,
-  };
+  return await createReport({ ...data, labId, technician: technicianId });
+};
 
-  return await createReport(reportData);
+// Creates multiple Reports for one patient in one go, all linked by a shared visitId
+export const createReportsBatch = async (data, labId, technicianId) => {
+  const patient = await findPatientById(data.patient);
+  if (!patient) throw new AppError("Patient not found", 404);
+  if (patient.labId.toString() !== labId.toString()) {
+    throw new AppError("Patient does not belong to your lab", 403);
+  }
+
+  if (!Array.isArray(data.testTemplates) || data.testTemplates.length === 0) {
+    throw new AppError("Select at least one test template", 400);
+  }
+
+  // Validate every template up front, before creating anything
+  const templates = [];
+  for (const templateId of data.testTemplates) {
+    const template = await findTemplateById(templateId);
+    if (!template) throw new AppError("Test template not found", 404);
+    if (template.labId.toString() !== labId.toString()) {
+      throw new AppError("Test template does not belong to your lab", 403);
+    }
+    templates.push(template);
+  }
+
+  const visitId = await generateSequenceId(`visitId:${labId}`, "VISIT");
+
+  const createdReports = [];
+  for (const template of templates) {
+    const report = await createReport({
+      patient: data.patient,
+      testTemplate: template._id,
+      labId,
+      technician: technicianId,
+      visitId,
+    });
+    createdReports.push(report);
+  }
+
+  return createdReports;
 };
 
 export const getReportsForLab = async (labId) => {
@@ -48,71 +76,52 @@ export const getReportsForLab = async (labId) => {
 
 export const getReportById = async (reportId, labId) => {
   const report = await findReportById(reportId);
-
-  if (!report) {
-    throw new AppError("Report not found", 404);
-  }
-
+  if (!report) throw new AppError("Report not found", 404);
   if (report.labId.toString() !== labId.toString()) {
     throw new AppError("Report does not belong to your lab", 403);
   }
-
   return report;
+};
+
+export const getReportsByVisit = async (visitId, labId) => {
+  const reports = await findReportsByVisit(visitId);
+  if (!reports.length) throw new AppError("Visit not found", 404);
+  if (reports[0].labId.toString() !== labId.toString()) {
+    throw new AppError("Visit does not belong to your lab", 403);
+  }
+  return reports;
 };
 
 export const collectSample = async (reportId, labId) => {
   const report = await findReportById(reportId);
-
-  if (!report) {
-    throw new AppError("Report not found", 404);
-  }
-
+  if (!report) throw new AppError("Report not found", 404);
   if (report.labId.toString() !== labId.toString()) {
     throw new AppError("Report does not belong to your lab", 403);
   }
+  if (report.status !== "pending") throw new AppError("Report is not in pending state", 400);
 
-  if (report.status !== "pending") {
-    throw new AppError("Report is not in pending state", 400);
-  }
-
-  return await updateReport(reportId, {
-    status: "sample_collected",
-    sampleCollectedAt: new Date(),
-  });
+  return await updateReport(reportId, { status: "sample_collected", sampleCollectedAt: new Date() });
 };
 
 export const enterResults = async (reportId, labId, resultsPayload) => {
   const report = await findReportById(reportId);
-
-  if (!report) {
-    throw new AppError("Report not found", 404);
-  }
-
+  if (!report) throw new AppError("Report not found", 404);
   if (report.labId.toString() !== labId.toString()) {
     throw new AppError("Report does not belong to your lab", 403);
   }
-
   if (report.status !== "sample_collected") {
     throw new AppError("Sample must be collected before entering results", 400);
   }
 
   const template = await findTemplateById(report.testTemplate);
-
-  if (!template) {
-    throw new AppError("Test template not found", 404);
-  }
+  if (!template) throw new AppError("Test template not found", 404);
 
   for (const item of resultsPayload) {
-    const field = template.fields.find((field) => field.key === item.key);
-
-    if (!field) {
-      throw new AppError(`Invalid result key: ${item.key}`, 400);
-    }
-
+    const field = template.fields.find((f) => f.key === item.key);
+    if (!field) throw new AppError(`Invalid result key: ${item.key}`, 400);
     if (field.type === "number" && typeof item.value !== "number") {
       throw new AppError(`${item.key} must be a number`, 400);
     }
-
     if (field.type === "text" && typeof item.value !== "string") {
       throw new AppError(`${item.key} must be text`, 400);
     }
@@ -127,78 +136,61 @@ export const enterResults = async (reportId, labId, resultsPayload) => {
 
 export const completeReport = async (reportId, labId) => {
   const report = await findReportById(reportId);
-
-  if (!report) {
-    throw new AppError("Report not found", 404);
-  }
-
+  if (!report) throw new AppError("Report not found", 404);
   if (report.labId.toString() !== labId.toString()) {
     throw new AppError("Report does not belong to your lab", 403);
   }
-
   if (report.status !== "result_entered") {
     throw new AppError("Results must be entered before completing", 400);
   }
 
-  return await updateReport(reportId, {
-    status: "completed",
-    completedAt: new Date(),
-  });
+  return await updateReport(reportId, { status: "completed", completedAt: new Date() });
 };
 
 export const deliverReport = async (reportId, labId, deliveryMethod) => {
   const report = await findReportById(reportId);
-
-  if (!report) {
-    throw new AppError("Report not found", 404);
-  }
-
+  if (!report) throw new AppError("Report not found", 404);
   if (report.labId.toString() !== labId.toString()) {
     throw new AppError("Report does not belong to your lab", 403);
   }
-
-  if (report.status !== "completed") {
-    throw new AppError("Report must be completed before delivery", 400);
-  }
-
+  if (report.status !== "completed") throw new AppError("Report must be completed before delivery", 400);
   if (!["digital", "physical"].includes(deliveryMethod)) {
     throw new AppError("Invalid delivery method", 400);
   }
 
-  return await updateReport(reportId, {
-    deliveryMethod,
-    deliveredAt: new Date(),
-  });
+  return await updateReport(reportId, { deliveryMethod, deliveredAt: new Date() });
 };
 
 export const getReportForPdf = async (reportId, labId) => {
-  if (!mongoose.isValidObjectId(reportId)) {
-    throw new AppError("Invalid report ID", 400);
-  }
+  if (!mongoose.isValidObjectId(reportId)) throw new AppError("Invalid report ID", 400);
 
-  const report = await findReportById(reportId); // populates patient, testTemplate, technician
-  if (!report) {
-    throw new AppError("Report not found", 404);
-  }
-
+  const report = await findReportById(reportId);
+  if (!report) throw new AppError("Report not found", 404);
   if (report.labId.toString() !== labId.toString()) {
     throw new AppError("Report does not belong to your lab", 403);
   }
-
-  // deliverReport doesn't change status, so "completed" covers delivered too.
-  // Revisit this if you add a "delivered" status later.
   if (report.status !== "completed") {
     throw new AppError("Report must be completed before generating a PDF", 400);
   }
-
-  // Validate everything the PDF needs BEFORE any bytes are sent
   if (!report.patient || !report.testTemplate) {
     throw new AppError("Report is missing patient or test template data", 422);
   }
 
-const lab = await findLabWithLogoById(labId);
-if (!lab) {
-  throw new AppError("Lab not found", 404);
-}
+  const lab = await findLabWithLogoById(labId);
+  if (!lab) throw new AppError("Lab not found", 404);
+
   return { report, lab };
+};
+
+export const getVisitForPdf = async (visitId, labId) => {
+  const reports = await getReportsByVisit(visitId, labId);
+  const incomplete = reports.filter((r) => r.status !== "completed");
+  if (incomplete.length > 0) {
+    throw new AppError("All tests in this visit must be completed before generating a combined PDF", 400);
+  }
+
+  const lab = await findLabWithLogoById(labId);
+  if (!lab) throw new AppError("Lab not found", 404);
+
+  return { reports, lab };
 };
