@@ -11,3 +11,10 @@ export const findTemplatesByLab = async (labId) => {
 export const findTemplateById = async (id) => {
   return await TestTemplate.findById(id);
 };
+
+export const updateTemplate = async (id, updateData) => {
+  return await TestTemplate.findByIdAndUpdate(id, updateData, {
+    returnDocument: "after",
+    runValidators: true,
+  });
+};

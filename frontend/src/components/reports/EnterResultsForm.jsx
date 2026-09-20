@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 
 import axiosInstance from "../../api/axiosInstance.js";
@@ -130,6 +131,19 @@ function EnterResultsForm({ report, onUpdated }) {
               className="w-full rounded-md border px-3 py-2"
               placeholder={`Enter ${field.label}`}
             />
+
+            {field.normalRange && (
+              <p className="mt-1 text-xs text-gray-500">
+                Normal range: {field.normalRange.min}–
+                {field.normalRange.max} {field.unit}
+              </p>
+            )}
+
+            {field.referenceNote && (
+              <p className="mt-1 text-xs text-gray-500">
+                {field.referenceNote}
+              </p>
+            )}
           </div>
         ))}
 
@@ -138,7 +152,9 @@ function EnterResultsForm({ report, onUpdated }) {
           disabled={loading}
           className="rounded-md bg-blue-600 px-5 py-2 font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
         >
-          {loading ? "Saving Results..." : "Submit Results"}
+          {loading
+            ? "Saving Results..."
+            : "Submit Results"}
         </button>
       </form>
     </div>
