@@ -1,8 +1,9 @@
 import AppError from "../utils/AppError.js";
 import { generateSequenceId } from "../utils/generateSequenceId.js";
 import { createPatient, findPatientsByLab, findPatientById } from "../repositories/patient.repository.js";
+
 export const registerPatient = async (data, labId) => {
-  const patientId = await generateSequenceId("patientId", "PAT");
+  const patientId = await generateSequenceId(`patientId:${labId}`, "PAT");
   const patientData = { ...data, labId, patientId };
 
   try {
