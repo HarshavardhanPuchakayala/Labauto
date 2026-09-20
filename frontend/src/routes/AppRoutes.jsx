@@ -1,5 +1,6 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 
+import Landing from "../pages/Landing";
 import Login from "../pages/Login";
 import LabSignup from "../pages/LabSignup";
 import TechnicianDashboard from "../pages/TechnicianDashboard";
@@ -16,6 +17,7 @@ import Layout from "../components/layout/Layout";
 function AppRoutes() {
   return (
     <Routes>
+      <Route path="/" element={<Landing />} />
       <Route path="/login" element={<Login />} />
       <Route path="/signup" element={<LabSignup />} />
 
@@ -78,8 +80,7 @@ function AppRoutes() {
         />
       </Route>
 
-      <Route path="/" element={<Navigate to="/login" replace />} />
-      <Route path="*" element={<Navigate to="/login" replace />} />
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 }
