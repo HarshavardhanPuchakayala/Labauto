@@ -8,13 +8,16 @@ import Alert from "../components/ui/Alert";
 import Button from "../components/ui/Button";
 import PageHeader from "../components/ui/PageHeader";
 import { CardSkeleton } from "../components/ui/Skeleton";
+import { useToast } from "../context/ToastContext";
 
 function TestTemplates() {
+  const { showToast } = useToast();
+
   const [templates, setTemplates] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
   const [showForm, setShowForm] = useState(false);
+  const [editingTemplate, setEditingTemplate] = useState(null);
   const [seeding, setSeeding] = useState(false);
 
   const fetchTemplates = async () => {
@@ -37,22 +40,35 @@ function TestTemplates() {
   const handleTemplateCreated = (newTemplate) => {
     setTemplates((prev) => [...prev, newTemplate]);
     setShowForm(false);
+    showToast("Template created successfully");
+  };
+
+  const handleTemplateUpdated = (updatedTemplate) => {
+    setTemplates((prev) => prev.map((t) => (t._id === updatedTemplate._id ? updatedTemplate : t)));
+    setEditingTemplate(null);
+    showToast("Template updated successfully");
+  };
+
+  const handleEditTemplate = (template) => {
+    setShowForm(false);
+    setEditingTemplate(template);
   };
 
   const handleLoadStandardTemplates = async () => {
     setError("");
-    setSuccess("");
     setSeeding(true);
     try {
       const response = await axiosInstance.post("/test-templates/seed-defaults");
-      setSuccess(response.data.message);
+      showToast(response.data.message);
       await fetchTemplates();
     } catch (error) {
-      setError(error.response?.data?.message || "Failed to load standard templates.");
+      showToast(error.response?.data?.message || "Failed to load standard templates.", "error");
     } finally {
       setSeeding(false);
     }
   };
+
+  const formVisible = showForm || Boolean(editingTemplate);
 
   return (
     <>
@@ -69,17 +85,33 @@ function TestTemplates() {
             >
               {seeding ? "Loading..." : "Load standard templates"}
             </Button>
-            <Button icon={showForm ? FiX : FiPlus} onClick={() => setShowForm((prev) => !prev)}>
-              {showForm ? "Close form" : "New template"}
+            <Button
+              icon={formVisible ? FiX : FiPlus}
+              onClick={() => {
+                if (formVisible) {
+                  setShowForm(false);
+                  setEditingTemplate(null);
+                } else {
+                  setShowForm(true);
+                }
+              }}
+            >
+              {formVisible ? "Close form" : "New template"}
             </Button>
           </div>
         }
       />
 
-      {success && <Alert tone="success" className="mb-4">{success}</Alert>}
-
-      {showForm && (
-        <TemplateForm onTemplateCreated={handleTemplateCreated} onCancel={() => setShowForm(false)} />
+      {formVisible && (
+        <TemplateForm
+          existingTemplate={editingTemplate}
+          onTemplateCreated={handleTemplateCreated}
+          onTemplateUpdated={handleTemplateUpdated}
+          onCancel={() => {
+            setShowForm(false);
+            setEditingTemplate(null);
+          }}
+        />
       )}
 
       {loading && (
@@ -93,7 +125,11 @@ function TestTemplates() {
       {error && <Alert className="mb-4">{error}</Alert>}
 
       {!loading && !error && (
-        <TemplateList templates={templates} onAddTemplate={() => setShowForm(true)} />
+        <TemplateList
+          templates={templates}
+          onAddTemplate={() => setShowForm(true)}
+          onEditTemplate={handleEditTemplate}
+        />
       )}
     </>
   );

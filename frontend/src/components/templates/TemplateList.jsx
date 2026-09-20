@@ -1,4 +1,4 @@
-import { FiClipboard, FiLayers, FiPlus } from "react-icons/fi";
+import { FiClipboard, FiEdit2, FiLayers, FiPlus } from "react-icons/fi";
 
 import Button from "../ui/Button";
 import Card from "../ui/Card";
@@ -6,8 +6,7 @@ import EmptyState from "../ui/EmptyState";
 
 const PREVIEW_COUNT = 4;
 
-// onAddTemplate is optional, so existing usages keep working.
-function TemplateList({ templates, onAddTemplate }) {
+function TemplateList({ templates, onAddTemplate, onEditTemplate }) {
   if (templates.length === 0) {
     return (
       <Card>
@@ -31,16 +30,29 @@ function TemplateList({ templates, onAddTemplate }) {
     <ul className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
       {templates.map((template) => (
         <Card as="li" key={template._id} className="p-5">
-          <div className="flex items-start gap-3">
-            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-teal-50 text-teal-700">
-              <FiClipboard className="h-[18px] w-[18px]" aria-hidden="true" />
-            </span>
-            <div className="min-w-0">
-              <h3 className="break-words font-semibold text-slate-900">{template.name}</h3>
-              <p className="mt-0.5 text-sm tabular-nums text-slate-500">
-                {template.fields.length} {template.fields.length === 1 ? "field" : "fields"}
-              </p>
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex min-w-0 items-start gap-3">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-teal-50 text-teal-700">
+                <FiClipboard className="h-[18px] w-[18px]" aria-hidden="true" />
+              </span>
+              <div className="min-w-0">
+                <h3 className="break-words font-semibold text-slate-900">{template.name}</h3>
+                <p className="mt-0.5 text-sm tabular-nums text-slate-500">
+                  {template.fields.length} {template.fields.length === 1 ? "field" : "fields"}
+                </p>
+              </div>
             </div>
+
+            {onEditTemplate && (
+              <button
+                type="button"
+                onClick={() => onEditTemplate(template)}
+                aria-label={`Edit ${template.name}`}
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-teal-50 hover:text-teal-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500"
+              >
+                <FiEdit2 className="h-4 w-4" aria-hidden="true" />
+              </button>
+            )}
           </div>
 
           {template.fields.length > 0 && (

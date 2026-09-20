@@ -11,3 +11,10 @@ export const findPatientsByLab = async (labId) => {
 export const findPatientById = async (id) => {
   return await Patient.findById(id);
 };
+
+export const updatePatient = async (id, updateData) => {
+  return await Patient.findByIdAndUpdate(id, updateData, {
+    returnDocument: "after",
+    runValidators: true,
+  });
+};

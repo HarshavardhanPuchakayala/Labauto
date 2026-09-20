@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { FiLayers, FiList, FiPlus, FiTrash2 } from "react-icons/fi";
 
 import axiosInstance from "../../api/axiosInstance";
@@ -22,7 +22,6 @@ const FIELD_TYPES = [
   { value: "text", label: "Text" },
 ];
 
-// Drag-handle look only: rows are not actually draggable.
 function GripIcon() {
   return (
     <svg viewBox="0 0 16 16" className="h-4 w-4" fill="currentColor" aria-hidden="true">
@@ -33,11 +32,36 @@ function GripIcon() {
   );
 }
 
-function TemplateForm({ onTemplateCreated, onCancel }) {
+// existingTemplate: pass a template object to edit it instead of creating a new one
+function TemplateForm({ existingTemplate, onTemplateCreated, onTemplateUpdated, onCancel }) {
+  const isEditing = Boolean(existingTemplate);
+
   const [name, setName] = useState("");
   const [fields, setFields] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (existingTemplate) {
+      setName(existingTemplate.name || "");
+      setFields(
+        (existingTemplate.fields || []).map((f) => ({
+          label: f.label || "",
+          key: f.key || "",
+          unit: f.unit || "",
+          type: f.type || "number",
+          normalRange: {
+            min: f.normalRange?.min ?? "",
+            max: f.normalRange?.max ?? "",
+          },
+          referenceNote: f.referenceNote || "",
+        }))
+      );
+    } else {
+      setName("");
+      setFields([]);
+    }
+  }, [existingTemplate]);
 
   const addField = () => {
     setFields((prev) => [...prev, { ...emptyField, normalRange: { ...emptyField.normalRange } }]);
@@ -75,7 +99,6 @@ function TemplateForm({ onTemplateCreated, onCancel }) {
     setLoading(true);
 
     try {
-      // Convert range strings to numbers (or omit if blank) before sending
       const preparedFields = fields.map((f) => {
         const hasRange = f.normalRange.min !== "" && f.normalRange.max !== "";
         return {
@@ -93,14 +116,23 @@ function TemplateForm({ onTemplateCreated, onCancel }) {
         };
       });
 
-      const response = await axiosInstance.post("/test-templates", { name, fields: preparedFields });
-      const newTemplate = response.data.template;
-
-      onTemplateCreated(newTemplate);
-      setName("");
-      setFields([]);
+      if (isEditing) {
+        const response = await axiosInstance.patch(`/test-templates/${existingTemplate._id}`, {
+          name,
+          fields: preparedFields,
+        });
+        onTemplateUpdated(response.data.template);
+      } else {
+        const response = await axiosInstance.post("/test-templates", { name, fields: preparedFields });
+        onTemplateCreated(response.data.template);
+        setName("");
+        setFields([]);
+      }
     } catch (error) {
-      setError(error.response?.data?.message || "Failed to create template. Please try again.");
+      setError(
+        error.response?.data?.message ||
+          `Failed to ${isEditing ? "update" : "create"} template. Please try again.`
+      );
     } finally {
       setLoading(false);
     }
@@ -110,7 +142,7 @@ function TemplateForm({ onTemplateCreated, onCancel }) {
     <Card className="mb-6">
       <CardHeader
         icon={FiLayers}
-        title="Create test template"
+        title={isEditing ? `Edit "${existingTemplate.name}"` : "Create test template"}
         description="Define the values a technician records for this test."
       />
 
@@ -247,7 +279,6 @@ function TemplateForm({ onTemplateCreated, onCancel }) {
                       </div>
                     </div>
 
-                    {/* Reference range row */}
                     <div className="mt-4 grid gap-4 border-t border-slate-100 pt-4 md:grid-cols-3">
                       {field.type === "number" ? (
                         <>
@@ -310,7 +341,7 @@ function TemplateForm({ onTemplateCreated, onCancel }) {
 
           <div className="flex items-center gap-2 border-t border-slate-100 pt-5">
             <Button type="submit" icon={FiLayers} loading={loading}>
-              {loading ? "Creating..." : "Create template"}
+              {loading ? (isEditing ? "Saving..." : "Creating...") : isEditing ? "Save changes" : "Create template"}
             </Button>
             {onCancel && (
               <Button type="button" variant="ghost" onClick={onCancel}>

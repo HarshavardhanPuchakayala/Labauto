@@ -26,3 +26,12 @@ export const getPatientByIdHandler = async (req, res, next) => {
     next(error);
   }
 };
+
+export const updatePatientHandler = async (req, res, next) => {
+  try {
+    const patient = await updatePatientForLab(req.params.id, req.user.labId, req.body);
+    res.status(200).json({ message: "Patient updated successfully", patient });
+  } catch (error) {
+    next(error);
+  }
+};
