@@ -10,9 +10,11 @@ import {
   deliverReport,
   getReportForPdf,
   getVisitForPdf,
+  getReportForPublicPdf,
 } from "../services/report.service.js";
-
+import { generateReportAccessToken, verifyReportAccessToken } from "../utils/reportAccessToken.js";
 import { buildReportPdf, buildCombinedReportPdf } from "../services/reportPdf.service.js";
+import AppError from "../utils/AppError.js";
 
 export const createReportHandler = async (req, res, next) => {
   try {
@@ -98,9 +100,13 @@ export const deliverReportHandler = async (req, res, next) => {
 export const generateReportPdfHandler = async (req, res, next) => {
   try {
     const { report, lab } = await getReportForPdf(req.params.id, req.user.labId);
+
+    const token = generateReportAccessToken(report._id.toString());
+    const publicUrl = `${process.env.BACKEND_PUBLIC_URL}/api/reports/${report._id}/public-pdf?token=${token}`;
+
     res.setHeader("Content-Type", "application/pdf");
-    res.setHeader("Content-Disposition", `attachment; filename="report-${report._id}.pdf"`);
-    buildReportPdf(report, lab, res);
+    res.setHeader("Content-Disposition", `attachment; filename="report-${report.reportNumber}.pdf"`);
+    await buildReportPdf(report, lab, res, publicUrl);
   } catch (error) {
     if (res.headersSent) return res.destroy(error);
     next(error);
@@ -110,9 +116,41 @@ export const generateReportPdfHandler = async (req, res, next) => {
 export const getVisitPdfHandler = async (req, res, next) => {
   try {
     const { reports, lab } = await getVisitForPdf(req.params.visitId, req.user.labId);
+
+    const token = generateReportAccessToken(reports[0]._id.toString());
+    const publicUrl = `${process.env.BACKEND_PUBLIC_URL}/api/reports/${reports[0]._id}/public-pdf?token=${token}`;
+
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader("Content-Disposition", `attachment; filename="visit-${req.params.visitId}.pdf"`);
-    buildCombinedReportPdf(reports, lab, res);
+    await buildCombinedReportPdf(reports, lab, res, publicUrl);
+  } catch (error) {
+    if (res.headersSent) return res.destroy(error);
+    next(error);
+  }
+};
+
+// Public, unauthenticated endpoint the QR code actually points to
+export const getPublicReportPdfHandler = async (req, res, next) => {
+  try {
+    const { token } = req.query;
+    if (!token) throw new AppError("Missing access token", 401);
+
+    let reportId;
+    try {
+      reportId = verifyReportAccessToken(token);
+    } catch {
+      throw new AppError("Invalid or expired access link", 401);
+    }
+
+    if (reportId !== req.params.id) {
+      throw new AppError("Invalid access link for this report", 403);
+    }
+
+    const { report, lab } = await getReportForPublicPdf(reportId);
+
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", `inline; filename="report-${report.reportNumber}.pdf"`);
+    await buildReportPdf(report, lab, res, null);
   } catch (error) {
     if (res.headersSent) return res.destroy(error);
     next(error);

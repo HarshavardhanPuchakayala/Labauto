@@ -1,5 +1,5 @@
 import PDFDocument from "pdfkit";
-import { generateBarcodeBuffer } from "../utils/barcode.js";
+import { generateQrCodeBuffer } from "../utils/qrcode.js";
 
 const DEFAULT_HEADER_COLOR = "#0d9488";
 const COLS = { test: 50, result: 260, range: 350, unit: 480 };
@@ -34,7 +34,7 @@ const getAge = (dob) => {
   return age >= 0 ? age : null;
 };
 
-function drawLetterhead(doc, lab, barcodeBuffer) {
+function drawLetterhead(doc, lab, qrBuffer) {
   const headerColor = lab.reportHeaderColor || DEFAULT_HEADER_COLOR;
   const bannerHeight = 90;
 
@@ -58,16 +58,15 @@ function drawLetterhead(doc, lab, barcodeBuffer) {
   const contact = [lab.address, lab.phone, lab.email].filter(Boolean).join("   |   ");
   if (contact) doc.fontSize(8).text(contact, textX, lab.tagline ? 60 : 46, { width: 260 });
 
-  // Barcode — white box, top-right of the banner, so it's scannable against the colored background
-  if (barcodeBuffer) {
-    const barcodeWidth = 140;
-    const barcodeHeight = 55;
-    const boxX = doc.page.width - 40 - barcodeWidth;
-    doc.roundedRect(boxX, 15, barcodeWidth, barcodeHeight, 4).fill("#ffffff");
+  // QR code — white box, top-right, scans to the publicly viewable PDF
+  if (qrBuffer) {
+    const qrSize = 60;
+    const boxX = doc.page.width - 40 - qrSize - 10;
+    doc.roundedRect(boxX, 15, qrSize + 10, qrSize + 10, 4).fill("#ffffff");
     try {
-      doc.image(barcodeBuffer, boxX + 5, 20, { width: barcodeWidth - 10 });
+      doc.image(qrBuffer, boxX + 5, 20, { width: qrSize, height: qrSize });
     } catch (error) {
-      console.error("Failed to embed barcode:", error.message);
+      console.error("Failed to embed QR code:", error.message);
     }
   }
 
@@ -200,13 +199,21 @@ function drawSection(doc, headerColor, section) {
   const fields = section.fields || [];
   (section.results || []).forEach((result) => {
     const field = fields.find((f) => f.key === result.key);
-    const range = field?.normalRange
+
+    // Defensive check: some existing templates have a malformed normalRange
+    // object (e.g. { min: undefined, max: undefined }) instead of omitting it.
+    const hasValidRange =
+      field?.normalRange &&
+      typeof field.normalRange.min === "number" &&
+      typeof field.normalRange.max === "number";
+
+    const range = hasValidRange
       ? `${field.normalRange.min} - ${field.normalRange.max}`
       : field?.referenceNote || "—";
 
     let abnormal = false;
     let direction = "";
-    if (field?.normalRange && typeof result.value === "number") {
+    if (hasValidRange && typeof result.value === "number") {
       if (result.value < field.normalRange.min) {
         abnormal = true;
         direction = "L";
@@ -240,13 +247,13 @@ function drawFooter(doc) {
   doc.fillColor("#000000");
 }
 
-export const buildReportPdf = async (report, lab, outputStream) => {
-  const barcodeBuffer = await generateBarcodeBuffer(report.reportNumber || report._id.toString());
+export const buildReportPdf = async (report, lab, outputStream, publicUrl) => {
+  const qrBuffer = publicUrl ? await generateQrCodeBuffer(publicUrl) : null;
 
   const doc = new PDFDocument({ margin: 50, size: "A4" });
   doc.pipe(outputStream);
 
-  drawLetterhead(doc, lab, barcodeBuffer);
+  drawLetterhead(doc, lab, qrBuffer);
   drawPatientInfo(doc, {
     patient: report.patient,
     reportNumber: report.reportNumber,
@@ -267,14 +274,14 @@ export const buildReportPdf = async (report, lab, outputStream) => {
   doc.end();
 };
 
-export const buildCombinedReportPdf = async (reports, lab, outputStream) => {
+export const buildCombinedReportPdf = async (reports, lab, outputStream, publicUrl) => {
+  const qrBuffer = publicUrl ? await generateQrCodeBuffer(publicUrl) : null;
   const first = reports[0];
-  const barcodeBuffer = await generateBarcodeBuffer(first.visitId || first.reportNumber);
 
   const doc = new PDFDocument({ margin: 50, size: "A4" });
   doc.pipe(outputStream);
 
-  drawLetterhead(doc, lab, barcodeBuffer);
+  drawLetterhead(doc, lab, qrBuffer);
   drawPatientInfo(doc, {
     patient: first.patient,
     reportNumber: first.visitId,

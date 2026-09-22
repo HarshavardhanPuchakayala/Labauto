@@ -203,3 +203,14 @@ export const getVisitForPdf = async (visitId, labId) => {
 
   return { reports, lab };
 };
+
+export const getReportForPublicPdf = async (reportId) => {
+  const report = await findReportById(reportId);
+  if (!report) throw new AppError("Report not found", 404);
+  if (report.status !== "completed") {
+    throw new AppError("Report is not yet available", 400);
+  }
+  const lab = await findLabWithLogoById(report.labId);
+  if (!lab) throw new AppError("Lab not found", 404);
+  return { report, lab };
+};

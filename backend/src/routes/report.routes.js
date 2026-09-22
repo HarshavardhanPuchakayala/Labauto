@@ -11,6 +11,7 @@ import {
   deliverReportHandler,
   generateReportPdfHandler,
   getVisitPdfHandler,
+  getPublicReportPdfHandler
 } from "../controllers/report.controller.js";
 
 import { verifyToken } from "../middlewares/auth.middleware.js";
@@ -30,5 +31,5 @@ router.patch("/:id/collect-sample", verifyToken, collectSampleHandler);
 router.patch("/:id/enter-results", verifyToken, enterResultsHandler);
 router.patch("/:id/complete", verifyToken, completeHandler);
 router.patch("/:id/deliver", verifyToken, deliverReportHandler);
-
+router.get("/:id/public-pdf", getPublicReportPdfHandler);
 export default router;
