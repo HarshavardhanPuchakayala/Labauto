@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { FiFilePlus } from "react-icons/fi";
+import { FiCheck, FiFilePlus } from "react-icons/fi";
 
 import axiosInstance from "../../api/axiosInstance.js";
 import Alert from "../ui/Alert";
+import Badge from "../ui/Badge";
 import Button from "../ui/Button";
 import Card, { CardBody, CardHeader } from "../ui/Card";
 import { Field, Select } from "../ui/Form";
@@ -17,7 +18,7 @@ function ReportForm({ onReportCreated, onCancel }) {
   const [templates, setTemplates] = useState([]);
 
   const [selectedPatient, setSelectedPatient] = useState("");
-  const [selectedTemplate, setSelectedTemplate] = useState("");
+  const [selectedTemplates, setSelectedTemplates] = useState([]);
 
   const [loading, setLoading] = useState(false);
   const [loadingData, setLoadingData] = useState(true);
@@ -29,19 +30,15 @@ function ReportForm({ onReportCreated, onCancel }) {
         setLoadingData(true);
         setError("");
 
-        const [patientsResponse, templatesResponse] =
-          await Promise.all([
-            axiosInstance.get("/patients"),
-            axiosInstance.get("/test-templates"),
-          ]);
+        const [patientsResponse, templatesResponse] = await Promise.all([
+          axiosInstance.get("/patients"),
+          axiosInstance.get("/test-templates"),
+        ]);
 
         setPatients(patientsResponse.data.patients);
         setTemplates(templatesResponse.data.templates);
       } catch (error) {
-        setError(
-          error.response?.data?.message ||
-            "Failed to load patients and test templates."
-        );
+        setError(error.response?.data?.message || "Failed to load patients and test templates.");
       } finally {
         setLoadingData(false);
       }
@@ -50,35 +47,39 @@ function ReportForm({ onReportCreated, onCancel }) {
     fetchData();
   }, []);
 
+  const toggleTemplate = (templateId) => {
+    setSelectedTemplates((prev) =>
+      prev.includes(templateId) ? prev.filter((id) => id !== templateId) : [...prev, templateId]
+    );
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-
     setError("");
 
-    if (!selectedPatient || !selectedTemplate) {
-      setError("Please select a patient and test template.");
+    if (!selectedPatient) {
+      setError("Please select a patient.");
+      return;
+    }
+    if (selectedTemplates.length === 0) {
+      setError("Please select at least one test.");
       return;
     }
 
     setLoading(true);
 
     try {
-      const response = await axiosInstance.post("/reports", {
+      const response = await axiosInstance.post("/reports/batch", {
         patient: selectedPatient,
-        testTemplate: selectedTemplate,
+        testTemplates: selectedTemplates,
       });
 
-      const newReport = response.data.report;
-
-      onReportCreated(newReport);
+      onReportCreated(response.data.reports);
 
       setSelectedPatient("");
-      setSelectedTemplate("");
+      setSelectedTemplates([]);
     } catch (error) {
-      setError(
-        error.response?.data?.message ||
-          "Failed to create report. Please try again."
-      );
+      setError(error.response?.data?.message || "Failed to create report. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -104,7 +105,7 @@ function ReportForm({ onReportCreated, onCancel }) {
       <CardHeader
         icon={FiFilePlus}
         title="Create report"
-        description="Choose the patient and the test to run."
+        description="Choose the patient and one or more tests to run in this visit."
       />
 
       <CardBody>
@@ -131,45 +132,62 @@ function ReportForm({ onReportCreated, onCancel }) {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-5">
-          <div className="grid gap-4 md:grid-cols-2">
-            {/* Patient */}
-            <Field label="Patient">
-              <Select
-                value={selectedPatient}
-                onChange={(e) => setSelectedPatient(e.target.value)}
-                required
-              >
-                <option value="">Select patient</option>
+          <Field label="Patient" className="max-w-md">
+            <Select value={selectedPatient} onChange={(e) => setSelectedPatient(e.target.value)} required>
+              <option value="">Select patient</option>
+              {patients.map((patient) => (
+                <option key={patient._id} value={patient._id}>
+                  {patient.name} ({patient.patientId})
+                </option>
+              ))}
+            </Select>
+          </Field>
 
-                {patients.map((patient) => (
-                  <option key={patient._id} value={patient._id}>
-                    {patient.name} ({patient.patientId})
-                  </option>
-                ))}
-              </Select>
-            </Field>
+          <div>
+            <div className="mb-2 flex items-center gap-2">
+              <span className="text-sm font-medium text-slate-700">Tests for this visit</span>
+              {selectedTemplates.length > 0 && <Badge tone="success">{selectedTemplates.length} selected</Badge>}
+            </div>
 
-            {/* Test Template */}
-            <Field label="Test template">
-              <Select
-                value={selectedTemplate}
-                onChange={(e) => setSelectedTemplate(e.target.value)}
-                required
-              >
-                <option value="">Select test template</option>
-
-                {templates.map((template) => (
-                  <option key={template._id} value={template._id}>
-                    {template.name}
-                  </option>
-                ))}
-              </Select>
-            </Field>
+            <div className="grid gap-2 rounded-lg border border-slate-200 p-3 sm:grid-cols-2">
+              {templates.map((template) => {
+                const checked = selectedTemplates.includes(template._id);
+                return (
+                  <label
+                    key={template._id}
+                    className={`flex cursor-pointer items-center gap-3 rounded-lg border px-3 py-2.5 text-sm transition-colors duration-150 ${
+                      checked
+                        ? "border-teal-500 bg-teal-50 text-teal-900"
+                        : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                    }`}
+                  >
+                    <span
+                      className={`flex h-5 w-5 shrink-0 items-center justify-center rounded border ${
+                        checked ? "border-teal-600 bg-teal-600 text-white" : "border-slate-300 bg-white"
+                      }`}
+                    >
+                      {checked && <FiCheck className="h-3.5 w-3.5" aria-hidden="true" />}
+                    </span>
+                    <input
+                      type="checkbox"
+                      className="sr-only"
+                      checked={checked}
+                      onChange={() => toggleTemplate(template._id)}
+                    />
+                    <span className="min-w-0 truncate font-medium">{template.name}</span>
+                  </label>
+                );
+              })}
+            </div>
           </div>
 
           <div className="flex items-center gap-2">
             <Button type="submit" icon={FiFilePlus} loading={loading}>
-              {loading ? "Creating..." : "Create report"}
+              {loading
+                ? "Creating..."
+                : selectedTemplates.length > 1
+                  ? `Create ${selectedTemplates.length} reports`
+                  : "Create report"}
             </Button>
             {onCancel && (
               <Button type="button" variant="ghost" onClick={onCancel}>

@@ -27,10 +27,17 @@ export const createReportForLab = async (data, labId, technicianId) => {
     throw new AppError("Test template does not belong to your lab", 403);
   }
 
-  return await createReport({ ...data, labId, technician: technicianId });
+  const reportNumber = await generateSequenceId(`reportNumber:${labId}`, "REP");
+
+  return await createReport({
+    ...data,
+    labId,
+    technician: technicianId,
+    reportNumber,
+    referredBy: data.referredBy || undefined,
+  });
 };
 
-// Creates multiple Reports for one patient in one go, all linked by a shared visitId
 export const createReportsBatch = async (data, labId, technicianId) => {
   const patient = await findPatientById(data.patient);
   if (!patient) throw new AppError("Patient not found", 404);
@@ -42,7 +49,6 @@ export const createReportsBatch = async (data, labId, technicianId) => {
     throw new AppError("Select at least one test template", 400);
   }
 
-  // Validate every template up front, before creating anything
   const templates = [];
   for (const templateId of data.testTemplates) {
     const template = await findTemplateById(templateId);
@@ -57,12 +63,15 @@ export const createReportsBatch = async (data, labId, technicianId) => {
 
   const createdReports = [];
   for (const template of templates) {
+    const reportNumber = await generateSequenceId(`reportNumber:${labId}`, "REP");
     const report = await createReport({
       patient: data.patient,
       testTemplate: template._id,
       labId,
       technician: technicianId,
       visitId,
+      reportNumber,
+      referredBy: data.referredBy || undefined,
     });
     createdReports.push(report);
   }

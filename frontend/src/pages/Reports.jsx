@@ -26,9 +26,8 @@ function Reports() {
   const [showForm, setShowForm] = useState(false);
   const [statusFilter, setStatusFilter] = useState("all");
 
-  const filteredReports = statusFilter === "all"
-    ? reports
-    : reports.filter((r) => r.status === statusFilter);
+  const filteredReports =
+    statusFilter === "all" ? reports : reports.filter((r) => r.status === statusFilter);
 
   useEffect(() => {
     const fetchReports = async () => {
@@ -47,8 +46,10 @@ function Reports() {
     fetchReports();
   }, []);
 
-  const handleReportCreated = (newReport) => {
-    setReports((prev) => [newReport, ...prev]);
+  // Accepts either a single report or an array (batch creation returns an array)
+  const handleReportCreated = (created) => {
+    const newReports = Array.isArray(created) ? created : [created];
+    setReports((prev) => [...newReports, ...prev]);
     setShowForm(false);
   };
 
@@ -89,11 +90,7 @@ function Reports() {
         />
       )}
 
-      <div
-        role="group"
-        aria-label="Filter reports by status"
-        className="mb-4 flex gap-2 overflow-x-auto pb-1"
-      >
+      <div role="group" aria-label="Filter reports by status" className="mb-4 flex gap-2 overflow-x-auto pb-1">
         {FILTERS.map((filter) => {
           const active = statusFilter === filter.value;
           return (
@@ -109,10 +106,7 @@ function Reports() {
               }`}
             >
               {filter.value !== "all" && (
-                <span
-                  className={`h-2 w-2 rounded-full ${REPORT_STATUS[filter.value].dot}`}
-                  aria-hidden="true"
-                />
+                <span className={`h-2 w-2 rounded-full ${REPORT_STATUS[filter.value].dot}`} aria-hidden="true" />
               )}
               {filter.label}
               <span
@@ -132,11 +126,7 @@ function Reports() {
       {error && <Alert className="mb-4">{error}</Alert>}
 
       {!loading && !error && (
-        <ReportTable
-          reports={filteredReports}
-          isFiltered={statusFilter !== "all"}
-          onNewReport={() => setShowForm(true)}
-        />
+        <ReportTable reports={filteredReports} isFiltered={statusFilter !== "all"} onNewReport={() => setShowForm(true)} />
       )}
     </>
   );

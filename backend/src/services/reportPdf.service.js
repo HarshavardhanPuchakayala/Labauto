@@ -1,4 +1,5 @@
 import PDFDocument from "pdfkit";
+import { generateBarcodeBuffer } from "../utils/barcode.js";
 
 const DEFAULT_HEADER_COLOR = "#0d9488";
 const COLS = { test: 50, result: 260, range: 350, unit: 480 };
@@ -12,7 +13,28 @@ const formatDate = (date) =>
     year: "numeric",
   });
 
-function drawLetterhead(doc, lab) {
+const formatDateTime = (date) =>
+  new Date(date).toLocaleString("en-IN", {
+    timeZone: "Asia/Kolkata",
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+
+const getAge = (dob) => {
+  if (!dob) return null;
+  const birth = new Date(dob);
+  if (Number.isNaN(birth.getTime())) return null;
+  const now = new Date();
+  let age = now.getFullYear() - birth.getFullYear();
+  const monthDiff = now.getMonth() - birth.getMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && now.getDate() < birth.getDate())) age -= 1;
+  return age >= 0 ? age : null;
+};
+
+function drawLetterhead(doc, lab, barcodeBuffer) {
   const headerColor = lab.reportHeaderColor || DEFAULT_HEADER_COLOR;
   const bannerHeight = 90;
 
@@ -29,12 +51,25 @@ function drawLetterhead(doc, lab) {
   }
 
   doc.fillColor("#ffffff");
-  doc.font("Helvetica-Bold").fontSize(20).text(lab.name, textX, 20, { width: doc.page.width - textX - 50 });
+  doc.font("Helvetica-Bold").fontSize(20).text(lab.name, textX, 20, { width: 260 });
   doc.font("Helvetica").fontSize(10);
-  if (lab.tagline) doc.text(lab.tagline, textX, 44, { width: doc.page.width - textX - 50 });
+  if (lab.tagline) doc.text(lab.tagline, textX, 44, { width: 260 });
 
   const contact = [lab.address, lab.phone, lab.email].filter(Boolean).join("   |   ");
-  if (contact) doc.fontSize(8).text(contact, textX, lab.tagline ? 60 : 46, { width: doc.page.width - textX - 50 });
+  if (contact) doc.fontSize(8).text(contact, textX, lab.tagline ? 60 : 46, { width: 260 });
+
+  // Barcode — white box, top-right of the banner, so it's scannable against the colored background
+  if (barcodeBuffer) {
+    const barcodeWidth = 140;
+    const barcodeHeight = 55;
+    const boxX = doc.page.width - 40 - barcodeWidth;
+    doc.roundedRect(boxX, 15, barcodeWidth, barcodeHeight, 4).fill("#ffffff");
+    try {
+      doc.image(barcodeBuffer, boxX + 5, 20, { width: barcodeWidth - 10 });
+    } catch (error) {
+      console.error("Failed to embed barcode:", error.message);
+    }
+  }
 
   doc.fillColor("#000000");
   doc.y = bannerHeight + 20;
@@ -56,14 +91,43 @@ function drawLetterhead(doc, lab) {
   }
 }
 
-function drawPatientInfo(doc, patient, extraLines = []) {
+function drawPatientInfo(doc, { patient, reportNumber, referredBy, sampleCollectedAt, reportDate, testCount }) {
   doc.font("Helvetica-Bold").fontSize(13).fillColor("#0f172a").text("Patient Report", 50, doc.y);
   doc.moveDown(0.4);
-  doc.font("Helvetica").fontSize(10).fillColor("#1e293b");
-  doc.text(`Patient Name: ${patient.name}`, 50);
-  doc.text(`Patient ID: ${patient.patientId || "—"}`, 50);
-  extraLines.forEach((line) => doc.text(line, 50));
-  doc.moveDown(0.8);
+
+  const age = getAge(patient.dob);
+  const ageGender = [age !== null ? `${age} yrs` : null, patient.gender].filter(Boolean).join(" / ");
+
+  doc.font("Helvetica").fontSize(9.5).fillColor("#1e293b");
+
+  const leftCol = [
+    `Patient Name: ${patient.name}`,
+    `Patient ID: ${patient.patientId || "—"}`,
+    ageGender ? `Age / Gender: ${ageGender}` : null,
+  ].filter(Boolean);
+
+  const rightCol = [
+    `Report No.: ${reportNumber || "—"}`,
+    `Report Date: ${formatDate(reportDate)}`,
+    sampleCollectedAt ? `Sample Collected: ${formatDateTime(sampleCollectedAt)}` : null,
+    referredBy ? `Referred By: Dr. ${referredBy}` : null,
+    testCount > 1 ? `Number of Tests: ${testCount}` : null,
+  ].filter(Boolean);
+
+  const startY = doc.y;
+  let y = startY;
+  leftCol.forEach((line) => {
+    doc.text(line, 50, y, { width: 260 });
+    y += 14;
+  });
+
+  let yRight = startY;
+  rightCol.forEach((line) => {
+    doc.text(line, 320, yRight, { width: 225 });
+    yRight += 14;
+  });
+
+  doc.y = Math.max(y, yRight) + 6;
   doc.strokeColor("#cbd5e1").moveTo(50, doc.y).lineTo(doc.page.width - 50, doc.y).stroke();
   doc.strokeColor("#000000").fillColor("#000000");
   doc.moveDown(0.8);
@@ -105,7 +169,6 @@ function drawSection(doc, headerColor, section) {
 
   const drawRow = (cells, abnormal, direction) => {
     doc.fontSize(9.5);
-
     const heights = cells.map((text, i) => doc.heightOfString(String(text), { width: colWidths[i] }));
     const rowHeight = Math.max(ROW_HEIGHT, ...heights);
 
@@ -162,23 +225,36 @@ function drawSection(doc, headerColor, section) {
 function drawFooter(doc) {
   doc.x = doc.page.margins.left;
   doc.moveDown(1.5);
-  doc
-    .font("Helvetica")
-    .fontSize(8)
-    .fillColor("#64748b")
-    .text("This is a computer-generated report and does not require a signature.", 50, doc.y, {
-      align: "center",
-      width: doc.page.width - 100,
-    });
+
+  if (doc.y > doc.page.height - 90) doc.addPage();
+
+  doc.strokeColor("#cbd5e1").moveTo(50, doc.y).lineTo(doc.page.width - 50, doc.y).stroke();
+  doc.strokeColor("#000000");
+  doc.moveDown(0.6);
+
+  doc.font("Helvetica").fontSize(8).fillColor("#64748b");
+  doc.text("This is a computer-generated report and does not require a signature.", 50, doc.y, {
+    align: "center",
+    width: doc.page.width - 100,
+  });
   doc.fillColor("#000000");
 }
 
-export const buildReportPdf = (report, lab, outputStream) => {
+export const buildReportPdf = async (report, lab, outputStream) => {
+  const barcodeBuffer = await generateBarcodeBuffer(report.reportNumber || report._id.toString());
+
   const doc = new PDFDocument({ margin: 50, size: "A4" });
   doc.pipe(outputStream);
 
-  drawLetterhead(doc, lab);
-  drawPatientInfo(doc, report.patient, [`Report Date: ${formatDate(report.completedAt || report.createdAt)}`]);
+  drawLetterhead(doc, lab, barcodeBuffer);
+  drawPatientInfo(doc, {
+    patient: report.patient,
+    reportNumber: report.reportNumber,
+    referredBy: report.referredBy,
+    sampleCollectedAt: report.sampleCollectedAt,
+    reportDate: report.completedAt || report.createdAt,
+    testCount: 1,
+  });
 
   drawSection(doc, lab.reportHeaderColor || DEFAULT_HEADER_COLOR, {
     templateName: report.testTemplate.name,
@@ -191,17 +267,22 @@ export const buildReportPdf = (report, lab, outputStream) => {
   doc.end();
 };
 
-export const buildCombinedReportPdf = (reports, lab, outputStream) => {
+export const buildCombinedReportPdf = async (reports, lab, outputStream) => {
+  const first = reports[0];
+  const barcodeBuffer = await generateBarcodeBuffer(first.visitId || first.reportNumber);
+
   const doc = new PDFDocument({ margin: 50, size: "A4" });
   doc.pipe(outputStream);
 
-  drawLetterhead(doc, lab);
-
-  const first = reports[0];
-  drawPatientInfo(doc, first.patient, [
-    `Report Date: ${formatDate(first.completedAt || first.createdAt)}`,
-    `Number of Tests: ${reports.length}`,
-  ]);
+  drawLetterhead(doc, lab, barcodeBuffer);
+  drawPatientInfo(doc, {
+    patient: first.patient,
+    reportNumber: first.visitId,
+    referredBy: first.referredBy,
+    sampleCollectedAt: first.sampleCollectedAt,
+    reportDate: first.completedAt || first.createdAt,
+    testCount: reports.length,
+  });
 
   reports.forEach((report) => {
     drawSection(doc, lab.reportHeaderColor || DEFAULT_HEADER_COLOR, {

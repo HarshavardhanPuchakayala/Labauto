@@ -14,7 +14,9 @@ const reportSchema = new mongoose.Schema(
     labId: { type: mongoose.Schema.Types.ObjectId, ref: "Lab", required: true },
     technician: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
     testTemplate: { type: mongoose.Schema.Types.ObjectId, ref: "TestTemplate", required: true },
-    visitId: { type: String, index: true }, // groups reports created together for one patient visit
+    visitId: { type: String, index: true },
+    reportNumber: { type: String, required: true },
+    referredBy: { type: String, trim: true },
     results: { type: [resultSchema], default: [] },
     status: {
       type: String,
@@ -29,5 +31,7 @@ const reportSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
+reportSchema.index({ labId: 1, reportNumber: 1 }, { unique: true });
 
 export default mongoose.model("Report", reportSchema);
