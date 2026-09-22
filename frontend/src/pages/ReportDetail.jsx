@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import {
   FiActivity,
   FiCheckCircle,
@@ -10,6 +10,7 @@ import {
   FiFilePlus,
   FiFileText,
   FiHash,
+  FiLayers,
   FiSend,
   FiUser,
   FiUserCheck,
@@ -115,11 +116,7 @@ function Timeline({ report }) {
               <Icon className="h-4 w-4" aria-hidden="true" />
             </span>
             <div className="min-w-0 pt-0.5">
-              <p
-                className={`text-sm font-medium ${
-                  done || current ? "text-slate-900" : "text-slate-400"
-                }`}
-              >
+              <p className={`text-sm font-medium ${done || current ? "text-slate-900" : "text-slate-400"}`}>
                 {step.label}
               </p>
               <p className="text-xs tabular-nums text-slate-500">
@@ -133,12 +130,93 @@ function Timeline({ report }) {
   );
 }
 
+function VisitPanel({ currentReportId, visitId, allComplete, onDownloadVisit, downloadingVisit }) {
+  const [siblings, setSiblings] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    const fetchSiblings = async () => {
+      try {
+        const response = await axiosInstance.get(`/reports/visit/${visitId}`);
+        if (!cancelled) setSiblings(response.data.reports);
+      } catch {
+        // Non-critical — the page still works without the sibling list
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+    fetchSiblings();
+    return () => {
+      cancelled = true;
+    };
+  }, [visitId]);
+
+  return (
+    <Card className="mb-6">
+      <CardHeader
+        icon={FiLayers}
+        title="Tests in this visit"
+        description="This patient's samples were registered together. Complete each test to enable the combined report."
+        action={
+          <Button
+            size="sm"
+            variant="secondary"
+            icon={FiDownload}
+            onClick={onDownloadVisit}
+            loading={downloadingVisit}
+            disabled={!allComplete}
+          >
+            {downloadingVisit ? "Generating..." : "Download combined PDF"}
+          </Button>
+        }
+      />
+      <CardBody>
+        {loading ? (
+          <Skeleton className="h-16" />
+        ) : (
+          <ul className="grid gap-2 sm:grid-cols-2">
+            {siblings.map((sibling) => {
+              const isCurrent = sibling._id === currentReportId;
+              const status = sibling.deliveredAt ? "delivered" : sibling.status;
+              return (
+                <li key={sibling._id}>
+                  <Link
+                    to={`/reports/${sibling._id}`}
+                    className={`flex items-center justify-between gap-3 rounded-lg border px-3.5 py-2.5 text-sm transition-colors duration-150 ${
+                      isCurrent
+                        ? "border-teal-400 bg-teal-50"
+                        : "border-slate-200 bg-white hover:bg-slate-50"
+                    }`}
+                  >
+                    <span className="min-w-0 truncate font-medium text-slate-900">
+                      {sibling.testTemplate?.name || "Unknown test"}
+                      {isCurrent && <span className="ml-1.5 text-xs font-normal text-teal-600">(viewing)</span>}
+                    </span>
+                    <StatusBadge status={status} />
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+        {!allComplete && (
+          <p className="mt-3 text-xs text-slate-500">
+            The combined PDF unlocks once every test above is marked completed.
+          </p>
+        )}
+      </CardBody>
+    </Card>
+  );
+}
+
 function ReportDetail() {
   const { id } = useParams();
   const [report, setReport] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [downloading, setDownloading] = useState(false);
+  const [downloadingVisit, setDownloadingVisit] = useState(false);
   const [downloadError, setDownloadError] = useState("");
 
   const fetchReport = useCallback(async () => {
@@ -158,27 +236,22 @@ function ReportDetail() {
     fetchReport();
   }, [fetchReport]);
 
-  const handleDownloadPdf = async () => {
+  const downloadBlob = async (url, filename, setFlag) => {
     try {
-      setDownloading(true);
+      setFlag(true);
       setDownloadError("");
-
-      const response = await axiosInstance.get(`/reports/${id}/pdf`, {
-        responseType: "blob",
-      });
-
+      const response = await axiosInstance.get(url, { responseType: "blob" });
       const blob = new Blob([response.data], { type: "application/pdf" });
-      const url = window.URL.createObjectURL(blob);
+      const blobUrl = window.URL.createObjectURL(blob);
       const link = document.createElement("a");
-      link.href = url;
-      link.download = `report-${id}.pdf`;
+      link.href = blobUrl;
+      link.download = filename;
       document.body.appendChild(link);
       link.click();
       link.remove();
-      setTimeout(() => window.URL.revokeObjectURL(url), 1000);
+      setTimeout(() => window.URL.revokeObjectURL(blobUrl), 1000);
     } catch (err) {
       let message = "Failed to download PDF.";
-      // With responseType "blob", error bodies are Blobs too, so decode them
       if (err.response?.data instanceof Blob) {
         try {
           const parsed = JSON.parse(await err.response.data.text());
@@ -189,9 +262,13 @@ function ReportDetail() {
       }
       setDownloadError(message);
     } finally {
-      setDownloading(false);
+      setFlag(false);
     }
   };
+
+  const handleDownloadPdf = () => downloadBlob(`/reports/${id}/pdf`, `report-${id}.pdf`, setDownloading);
+  const handleDownloadVisitPdf = () =>
+    downloadBlob(`/reports/visit/${report.visitId}/pdf`, `visit-${report.visitId}.pdf`, setDownloadingVisit);
 
   if (loading) {
     return (
@@ -222,7 +299,6 @@ function ReportDetail() {
   if (!report) return null;
 
   const isDelivered = Boolean(report.deliveredAt);
-  // "delivered" is derived from deliveredAt; the stored status stays "completed".
   const displayStatus = isDelivered ? "delivered" : report.status;
   const action = ACTION_COPY[displayStatus];
 
@@ -233,10 +309,7 @@ function ReportDetail() {
       <Card className="mb-6 overflow-hidden">
         <div className="flex gap-1" aria-hidden="true">
           {TIMELINE_STEPS.map((step) => (
-            <span
-              key={step.key}
-              className={`h-1 flex-1 ${report[step.field] ? "bg-teal-500" : "bg-slate-200"}`}
-            />
+            <span key={step.key} className={`h-1 flex-1 ${report[step.field] ? "bg-teal-500" : "bg-slate-200"}`} />
           ))}
         </div>
         <div className="flex flex-col gap-5 p-5 sm:p-6 md:flex-row md:items-center md:justify-between">
@@ -249,9 +322,7 @@ function ReportDetail() {
               <FiFileText className="h-6 w-6" aria-hidden="true" />
             </span>
             <div className="min-w-0">
-              <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
-                Report details
-              </h1>
+              <h1 className="text-2xl font-semibold tracking-tight text-slate-900">Report details</h1>
               <p className="mt-1 flex items-center gap-1.5 text-sm text-slate-500">
                 <FiHash className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
                 <span className="sr-only">Report ID:</span>
@@ -263,12 +334,7 @@ function ReportDetail() {
           <div className="flex flex-wrap items-center gap-3">
             <StatusBadge status={displayStatus} size="lg" />
             {report.status === "completed" && (
-              <Button
-                variant="dark"
-                icon={FiDownload}
-                onClick={handleDownloadPdf}
-                loading={downloading}
-              >
+              <Button variant="dark" icon={FiDownload} onClick={handleDownloadPdf} loading={downloading}>
                 {downloading ? "Generating..." : "Download PDF"}
               </Button>
             )}
@@ -277,6 +343,16 @@ function ReportDetail() {
       </Card>
 
       {downloadError && <Alert className="mb-6">{downloadError}</Alert>}
+
+      {report.visitId && (
+        <VisitPanel
+          currentReportId={report._id}
+          visitId={report.visitId}
+          allComplete={report.status === "completed"}
+          onDownloadVisit={handleDownloadVisitPdf}
+          downloadingVisit={downloadingVisit}
+        />
+      )}
 
       <div className="grid items-start gap-6 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">
@@ -334,18 +410,12 @@ function ReportDetail() {
                 </div>
               ) : (
                 <>
-                  {report.status === "pending" && (
-                    <CollectSampleButton reportId={id} onUpdated={fetchReport} />
-                  )}
+                  {report.status === "pending" && <CollectSampleButton reportId={id} onUpdated={fetchReport} />}
                   {report.status === "sample_collected" && (
                     <EnterResultsForm report={report} onUpdated={fetchReport} />
                   )}
-                  {report.status === "result_entered" && (
-                    <CompleteButton reportId={id} onUpdated={fetchReport} />
-                  )}
-                  {report.status === "completed" && (
-                    <DeliverForm reportId={id} onUpdated={fetchReport} />
-                  )}
+                  {report.status === "result_entered" && <CompleteButton reportId={id} onUpdated={fetchReport} />}
+                  {report.status === "completed" && <DeliverForm reportId={id} onUpdated={fetchReport} />}
                 </>
               )}
             </CardBody>
